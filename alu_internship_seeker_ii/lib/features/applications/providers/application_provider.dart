@@ -1,0 +1,57 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/errors/exceptions.dart';
+import '../../../models/application_model.dart';
+import '../../../models/opportunity_model.dart';
+import '../../../providers/app_providers.dart';
+import '../../authentication/providers/auth_provider.dart';
+
+final applicationsStreamProvider = StreamProvider<List<ApplicationModel>>((ref) {
+  final authRepo = ref.watch(authRepositoryProvider);
+  final appRepo = ref.watch(applicationRepositoryProvider);
+  return authRepo.authStateChanges.asyncExpand(
+    (user) => user == null ? Stream.value(const []) : appRepo.streamForStudent(user.uid),
+  );
+});
+
+final hasAppliedProvider = FutureProvider.family<bool, String>((ref, opportunityId) {
+  final user = ref.watch(authStateChangesProvider).value;
+  if (user == null) return Future.value(false);
+  return ref.watch(applicationRepositoryProvider).hasApplied(user.uid, opportunityId);
+});
+
+final applicationControllerProvider =
+    NotifierProvider<ApplicationController, AsyncValue<void>>(ApplicationController.new);
+
+class ApplicationController extends Notifier<AsyncValue<void>> {
+  @override
+  AsyncValue<void> build() => const AsyncData(null);
+
+  Future<bool> apply(OpportunityModel opportunity) async {
+    final user = ref.read(authStateChangesProvider).value;
+    if (user == null) return false;
+
+    state = const AsyncLoading();
+    try {
+      final now = DateTime.now();
+      await ref.read(applicationRepositoryProvider).apply(
+            ApplicationModel(
+              id: '',
+              opportunityId: opportunity.id,
+              opportunityTitle: opportunity.title,
+              startupId: opportunity.startupId,
+              startupName: opportunity.startupName,
+              studentId: user.uid,
+              appliedAt: now,
+              updatedAt: now,
+            ),
+          );
+      ref.invalidate(hasAppliedProvider(opportunity.id));
+      state = const AsyncData(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError(mapExceptionToFailure(e), st);
+      return false;
+    }
+  }
+}

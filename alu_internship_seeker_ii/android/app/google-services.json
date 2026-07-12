@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "801347560648",
+    "project_id": "alu-internship-seeker",
+    "storage_bucket": "alu-internship-seeker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:801347560648:android:4f156557e01576583f71fd",
+        "android_client_info": {
+          "package_name": "com.example.alu_internship_seeker_ii"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzp_BG53h-X638yVUAIErPzZLAONU3QtE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

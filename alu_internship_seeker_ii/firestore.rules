@@ -1,0 +1,52 @@
+rules_version = '2';
+
+// Firestore security rules for the student-facing phase of ALU Venture
+// Connect. Founder-side writes to `opportunities`/`startups` are already
+// expressed here (matched on `postedByUid`/`ownerUid`) even though no
+// founder UI exists yet, so this phase's data model doesn't need to change
+// when that UI is added.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // users/{uid} — one profile document per account, keyed by auth uid.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    // opportunities/{opportunityId} — readable by any signed-in user;
+    // writable only by the founder who posted it.
+    match /opportunities/{opportunityId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.postedByUid;
+      allow update, delete: if isSignedIn() &&
+        request.auth.uid == resource.data.postedByUid;
+    }
+
+    // applications/{applicationId} — a student can create and read their
+    // own applications. Status updates are reserved for the founder-side
+    // phase and are not yet permitted from the client.
+    match /applications/{applicationId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.studentId;
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.studentId;
+      allow update, delete: if false;
+    }
+
+    // startups/{startupId} — read-only in this phase; writable only by the
+    // owning founder once that workflow exists.
+    match /startups/{startupId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == resource.data.ownerUid;
+    }
+  }
+}

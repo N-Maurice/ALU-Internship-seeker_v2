@@ -1,38 +1,125 @@
 import 'package:flutter/material.dart';
-import 'package:alu_internship_seeker_ii/models/opportunity_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class OpportunityCard extends StatelessWidget {
+import '../../../core/theme/colors.dart';
+import '../../../core/utilities/date_formatter.dart';
+import '../../../models/opportunity_model.dart';
+import '../../../providers/app_providers.dart';
+import '../../authentication/providers/auth_provider.dart';
+
+class OpportunityCard extends ConsumerWidget {
   const OpportunityCard({super.key, required this.opportunity});
 
   final OpportunityModel opportunity;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(currentUserProfileProvider).value;
+    final isSaved = profile?.savedOpportunityIds.contains(opportunity.id) ?? false;
+
+    return InkWell(
+      onTap: () => context.push('/opportunities/${opportunity.id}'),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(opportunity.title,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(opportunity.company),
-            const SizedBox(height: 12),
-            Text(opportunity.description),
-            const SizedBox(height: 12),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.location_on_outlined, size: 18),
-                const SizedBox(width: 4),
-                Expanded(child: Text(opportunity.location)),
-                Chip(label: Text(opportunity.workType)),
+                Expanded(
+                  child: Text(
+                    opportunity.title,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (profile != null)
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: AppColors.navy),
+                    onPressed: () => ref.read(userRepositoryProvider).setSavedOpportunity(
+                          profile.uid,
+                          opportunity.id,
+                          !isSaved,
+                        ),
+                  ),
               ],
             ),
+            Text(opportunity.startupName, style: const TextStyle(fontSize: 15)),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(child: _MetaItem(Icons.work_outline, opportunity.category)),
+                Expanded(
+                    child: _MetaItem(Icons.place_outlined, opportunity.location)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                    child: _MetaItem(Icons.schedule_outlined, opportunity.duration)),
+                Expanded(
+                  child: _MetaItem(
+                    Icons.event_outlined,
+                    'Posted ${DateFormatter.relative(opportunity.postedAt)}',
+                  ),
+                ),
+              ],
+            ),
+            if (opportunity.requiredSkills.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: opportunity.requiredSkills
+                    .map((s) => Chip(
+                          label: Text(s),
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ))
+                    .toList(),
+              ),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MetaItem extends StatelessWidget {
+  const _MetaItem(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.textSecondary),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 }

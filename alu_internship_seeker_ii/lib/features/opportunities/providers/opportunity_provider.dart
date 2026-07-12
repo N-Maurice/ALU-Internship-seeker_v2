@@ -1,46 +1,49 @@
-import 'package:flutter/foundation.dart';
-import 'package:alu_internship_seeker_ii/models/opportunity_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class OpportunityProvider extends ChangeNotifier {
-  List<OpportunityModel> _allOpportunities = const [];
-  List<OpportunityModel> _opportunities = const [];
-  String _query = '';
-  String _filter = 'All';
-  bool _isLoading = false;
+import '../../../models/opportunity_model.dart';
+import '../../../providers/app_providers.dart';
+import '../../../repositories/opportunity_repository.dart';
 
-  List<OpportunityModel> get opportunities => _opportunities;
-  bool get isLoading => _isLoading;
+class OpportunityFilterNotifier extends Notifier<OpportunityFilter> {
+  @override
+  OpportunityFilter build() => const OpportunityFilter();
 
-  Future<void> loadOpportunities() async {
-    _isLoading = true;
-    notifyListeners();
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    _allOpportunities = OpportunityModel.mockOpportunities;
-    _isLoading = false;
-    _applyFilters();
-  }
+  void setQuery(String query) => state = state.copyWith(query: query);
 
-  void searchOpportunities(String query) {
-    _query = query.trim().toLowerCase();
-    _applyFilters();
-  }
+  void setWorkMode(WorkMode? mode) => state = state.copyWith(workMode: () => mode);
 
-  void filterOpportunities(String filter) {
-    _filter = filter;
-    _applyFilters();
-  }
+  void setSkill(String? skill) => state = state.copyWith(skill: () => skill);
 
-  void _applyFilters() {
-    _opportunities = _allOpportunities.where((opportunity) {
-      final matchesFilter = _filter == 'All' ||
-          (_filter == 'Internship' && opportunity.title.contains('Intern')) ||
-          opportunity.workType == _filter;
-      final matchesQuery = _query.isEmpty ||
-          opportunity.title.toLowerCase().contains(_query) ||
-          opportunity.company.toLowerCase().contains(_query) ||
-          opportunity.location.toLowerCase().contains(_query);
-      return matchesFilter && matchesQuery;
-    }).toList(growable: false);
-    notifyListeners();
-  }
+  void clear() => state = const OpportunityFilter();
 }
+
+final opportunityFilterProvider =
+    NotifierProvider<OpportunityFilterNotifier, OpportunityFilter>(
+  OpportunityFilterNotifier.new,
+);
+
+final opportunitiesStreamProvider = StreamProvider<List<OpportunityModel>>((ref) {
+  final filter = ref.watch(opportunityFilterProvider);
+  return ref.watch(opportunityRepositoryProvider).streamOpportunities(filter);
+});
+
+final opportunityByIdProvider =
+    FutureProvider.family<OpportunityModel?, String>((ref, id) {
+  return ref.watch(opportunityRepositoryProvider).getById(id);
+});
+
+/// Re-subscribes to the saved-opportunities stream whenever the signed-in
+/// uid or its saved-id list changes, chaining two `asyncExpand` calls (auth
+/// -> profile -> saved opportunities) directly off the repositories rather
+/// than another provider's removed `.stream` modifier.
+final savedOpportunitiesProvider = StreamProvider<List<OpportunityModel>>((ref) {
+  final authRepo = ref.watch(authRepositoryProvider);
+  final userRepo = ref.watch(userRepositoryProvider);
+  final opportunityRepo = ref.watch(opportunityRepositoryProvider);
+  return authRepo.authStateChanges.asyncExpand((user) {
+    if (user == null) return Stream.value(const <OpportunityModel>[]);
+    return userRepo.streamProfile(user.uid).asyncExpand(
+          (profile) => opportunityRepo.streamByIds(profile?.savedOpportunityIds ?? const []),
+        );
+  });
+});

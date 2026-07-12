@@ -1,12 +1,18 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:alu_internship_seeker_ii/main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('shows the opportunities screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+  testWidgets('shows a friendly message when Firebase is not configured',
+      (tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: AluVentureConnectApp(initError: 'placeholder config'),
+      ),
+    );
 
-    expect(find.text('Explore Opportunities'), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Mobile Development Intern'), findsOneWidget);
+    expect(find.text('Could not connect to Firebase.'), findsOneWidget);
+    expect(find.byIcon(Icons.cloud_off), findsOneWidget);
   });
 }
