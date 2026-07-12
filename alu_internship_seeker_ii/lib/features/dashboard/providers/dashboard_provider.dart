@@ -8,7 +8,8 @@ class DashboardProvider extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   int get updateCount => _updateCount;
-  List<OpportunityModel> get recommendedOpportunities => _recommendedOpportunities;
+  List<OpportunityModel> get recommendedOpportunities =>
+      _recommendedOpportunities;
 
   Future<void> loadDashboard() async {
     _isLoading = true;
@@ -17,11 +18,11 @@ class DashboardProvider extends ChangeNotifier {
     try {
       // Simulate API call
       await Future.delayed(const Duration(seconds: 1));
-      
+
       // Load mock data
       _recommendedOpportunities = OpportunityModel.mockOpportunities;
       _updateCount = 3;
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
