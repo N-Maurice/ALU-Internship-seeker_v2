@@ -51,9 +51,8 @@ class AppShellScaffold extends StatelessWidget {
   }
 }
 
-/// Bottom nav for the founder's 2-tab shell — deliberately smaller than the
-/// student shell, since applicants/messaging aren't tabs of their own (see
-/// `app_routes.dart` for why).
+/// Bottom nav for the founder's 5-tab shell, matching the student shell's
+/// structure (Home/Opp./Applicants/Messages/Profile).
 class FounderShellScaffold extends StatelessWidget {
   const FounderShellScaffold({super.key, required this.navigationShell});
 
@@ -71,14 +70,29 @@ class FounderShellScaffold extends StatelessWidget {
         ),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.work_outline),
-            selectedIcon: Icon(Icons.work),
-            label: 'Opportunities',
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.business_outlined),
-            selectedIcon: Icon(Icons.business),
-            label: 'Startup',
+            icon: Icon(Icons.work_outline),
+            selectedIcon: Icon(Icons.work),
+            label: 'Opp.',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Applicants',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.message_outlined),
+            selectedIcon: Icon(Icons.message),
+            label: 'Messages',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),

@@ -11,7 +11,10 @@ import '../features/authentication/screens/signup_screen.dart';
 import '../features/authentication/screens/verify_email_screen.dart';
 import '../features/authentication/screens/welcome_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
-import '../features/founder/screens/applicants_screen.dart';
+import '../features/founder/screens/applicant_management_screen.dart';
+import '../features/founder/screens/applicant_profile_screen.dart';
+import '../features/founder/screens/founder_dashboard_screen.dart';
+import '../features/founder/screens/founder_profile_screen.dart';
 import '../features/founder/screens/founder_startup_screen.dart';
 import '../features/founder/screens/my_opportunities_screen.dart';
 import '../features/founder/screens/opportunity_form_screen.dart';
@@ -86,7 +89,7 @@ class _RouterNotifier extends ChangeNotifier {
         isFounder ? _studentShellRoutes.contains(loc) : loc.startsWith('/founder');
 
     if (onAuthOrOnboardingRoute || onWrongRoleShell) {
-      return isFounder ? '/founder/opportunities' : '/home';
+      return isFounder ? '/founder/home' : '/home';
     }
     return null;
   }
@@ -139,10 +142,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             OpportunityFormScreen(opportunityId: state.pathParameters['id']!),
       ),
       GoRoute(
-        path: '/founder/opportunities/:id/applicants',
+        path: '/founder/applicants/:applicationId',
         builder: (_, state) =>
-            ApplicantsScreen(opportunityId: state.pathParameters['id']!),
+            ApplicantProfileScreen(applicationId: state.pathParameters['applicationId']!),
       ),
+      GoRoute(path: '/founder/startup', builder: (_, __) => const FounderStartupScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, __, shell) => AppShellScaffold(navigationShell: shell),
         branches: [
@@ -167,13 +171,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __, shell) => FounderShellScaffold(navigationShell: shell),
         branches: [
           StatefulShellBranch(routes: [
+            GoRoute(path: '/founder/home', builder: (_, __) => const FounderDashboardScreen()),
+          ]),
+          StatefulShellBranch(routes: [
             GoRoute(
               path: '/founder/opportunities',
               builder: (_, __) => const MyOpportunitiesScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/founder/startup', builder: (_, __) => const FounderStartupScreen()),
+            GoRoute(
+              path: '/founder/applicants',
+              builder: (_, state) => ApplicantManagementScreen(
+                opportunityId: state.uri.queryParameters['opportunityId'],
+              ),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/founder/messages', builder: (_, __) => const MessagesScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/founder/profile', builder: (_, __) => const FounderProfileScreen()),
           ]),
         ],
       ),
