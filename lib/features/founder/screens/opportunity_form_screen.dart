@@ -14,6 +14,8 @@ import '../../authentication/providers/auth_provider.dart';
 import '../../opportunities/providers/opportunity_provider.dart';
 import '../../startups/providers/startup_provider.dart';
 
+const _suggestedSkills = ['Data Analysis', 'Python', 'UI Design'];
+
 /// Handles both create and edit — `opportunityId == null` means create.
 class OpportunityFormScreen extends ConsumerStatefulWidget {
   const OpportunityFormScreen({super.key, this.opportunityId});
@@ -28,7 +30,7 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _categoryController = TextEditingController();
+  final _departmentController = TextEditingController();
   final _durationController = TextEditingController();
   final _locationController = TextEditingController();
   final _requiredSkills = <String>[];
@@ -53,7 +55,7 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
     if (opportunity != null) {
       _titleController.text = opportunity.title;
       _descriptionController.text = opportunity.description;
-      _categoryController.text = opportunity.category;
+      _departmentController.text = opportunity.category;
       _durationController.text = opportunity.duration;
       _locationController.text = opportunity.location;
       _requiredSkills
@@ -69,7 +71,7 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _categoryController.dispose();
+    _departmentController.dispose();
     _durationController.dispose();
     _locationController.dispose();
     super.dispose();
@@ -85,8 +87,20 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
     if (picked != null) setState(() => _deadline = picked);
   }
 
-  Future<void> _submit() async {
+  void _addSuggestedSkill(String skill) {
+    if (_requiredSkills.contains(skill)) return;
+    setState(() => _requiredSkills.add(skill));
+  }
+
+  Future<void> _submit(OpportunityStatus targetStatus) async {
     if (!_formKey.currentState!.validate()) return;
+
+    final user = ref.read(authStateChangesProvider).value;
+    final startup = ref.read(myStartupProvider).value;
+    if (user == null || startup == null || !startup.isVerified) {
+      context.showSnack('Your startup must be approved before you can post.', isError: true);
+      return;
+    }
 
     setState(() => _saving = true);
     final controller = ref.read(opportunityControllerProvider.notifier);
@@ -96,24 +110,15 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
       success = await controller.update(widget.opportunityId!, {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'category': _categoryController.text.trim(),
+        'category': _departmentController.text.trim(),
         'requiredSkills': _requiredSkills,
         'duration': _durationController.text.trim(),
         'location': _locationController.text.trim(),
         'workMode': _workMode.name,
         'deadline': _deadline,
+        'status': targetStatus.name,
       });
     } else {
-      final user = ref.read(authStateChangesProvider).value;
-      final startup = ref.read(myStartupProvider).value;
-      if (user == null || startup == null || !startup.isVerified) {
-        if (mounted) {
-          context.showSnack('Your startup must be approved before you can post.',
-              isError: true);
-          setState(() => _saving = false);
-        }
-        return;
-      }
       success = await controller.create(
         OpportunityModel(
           id: '',
@@ -123,20 +128,25 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
           postedByUid: user.uid,
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
-          category: _categoryController.text.trim(),
+          category: _departmentController.text.trim(),
           requiredSkills: _requiredSkills,
           duration: _durationController.text.trim(),
           location: _locationController.text.trim(),
           workMode: _workMode,
           deadline: _deadline,
           postedAt: DateTime.now(),
+          status: targetStatus,
         ),
       );
     }
 
     if (!mounted) return;
     if (success) {
-      context.showSnack(_isEditing ? 'Opportunity updated.' : 'Opportunity posted!');
+      context.showSnack(
+        targetStatus == OpportunityStatus.draft
+            ? 'Saved as draft.'
+            : (_isEditing ? 'Opportunity updated.' : 'Opportunity published!'),
+      );
       context.pop();
     } else {
       context.showSnack('Something went wrong. Please try again.', isError: true);
@@ -147,7 +157,7 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Edit Opportunity' : 'Post an Opportunity')),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit Opportunity' : 'Create New Opportunity')),
       body: SafeArea(
         child: _loadingExisting
             ? const Center(child: CircularProgressIndicator())
@@ -158,49 +168,56 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const Text(
+                        "Provide the details for the new role to connect with ALU's elite talent pool.",
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 20),
                       CustomTextField(
-                        label: 'Title',
+                        label: 'Job Title',
                         controller: _titleController,
-                        hint: 'e.g. Product Design Fellow',
+                        hint: 'e.g. Software Engineer Intern',
                         icon: Icons.title,
                         validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Enter a title' : null,
+                            (v == null || v.trim().isEmpty) ? 'Enter a job title' : null,
                       ),
                       const SizedBox(height: 16),
                       CustomTextField(
-                        label: 'Description',
-                        controller: _descriptionController,
-                        hint: 'What will they be doing?',
-                        icon: Icons.description_outlined,
-                        maxLines: 4,
-                        validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Enter a description' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      CustomTextField(
-                        label: 'Category',
-                        controller: _categoryController,
-                        hint: 'e.g. Product Team, Engineering',
+                        label: 'Department',
+                        controller: _departmentController,
+                        hint: 'e.g. Engineering, Growth, Product',
                         icon: Icons.category_outlined,
                         validator: (v) =>
-                            (v == null || v.trim().isEmpty) ? 'Enter a category' : null,
+                            (v == null || v.trim().isEmpty) ? 'Enter a department' : null,
                       ),
                       const SizedBox(height: 16),
-                      ChipInput(
-                        label: 'Required Skills',
-                        values: _requiredSkills,
-                        hint: 'e.g. Figma, User Research',
-                        onChanged: (v) => setState(() {
-                          _requiredSkills
-                            ..clear()
-                            ..addAll(v);
-                        }),
+                      Text('Internship Type', style: Theme.of(context).textTheme.labelLarge),
+                      const SizedBox(height: 8),
+                      _WorkModeCard(
+                        icon: Icons.public,
+                        label: 'Remote',
+                        selected: _workMode == WorkMode.remote,
+                        onTap: () => setState(() => _workMode = WorkMode.remote),
+                      ),
+                      const SizedBox(height: 10),
+                      _WorkModeCard(
+                        icon: Icons.holiday_village_outlined,
+                        label: 'Hybrid',
+                        selected: _workMode == WorkMode.hybrid,
+                        onTap: () => setState(() => _workMode = WorkMode.hybrid),
+                      ),
+                      const SizedBox(height: 10),
+                      _WorkModeCard(
+                        icon: Icons.location_on_outlined,
+                        label: 'On-site',
+                        selected: _workMode == WorkMode.onSite,
+                        onTap: () => setState(() => _workMode = WorkMode.onSite),
                       ),
                       const SizedBox(height: 16),
                       CustomTextField(
                         label: 'Duration',
                         controller: _durationController,
-                        hint: 'e.g. 3 Months',
+                        hint: 'e.g. 3 Months, 6 Months',
                         icon: Icons.schedule_outlined,
                         validator: (v) =>
                             (v == null || v.trim().isEmpty) ? 'Enter a duration' : null,
@@ -215,16 +232,41 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
                             (v == null || v.trim().isEmpty) ? 'Enter a location' : null,
                       ),
                       const SizedBox(height: 16),
-                      Text('Work Mode', style: Theme.of(context).textTheme.labelLarge),
-                      const SizedBox(height: 6),
-                      DropdownButtonFormField<WorkMode>(
-                        initialValue: _workMode,
-                        decoration:
-                            const InputDecoration(prefixIcon: Icon(Icons.business_center_outlined)),
-                        items: WorkMode.values
-                            .map((m) => DropdownMenuItem(value: m, child: Text(m.label)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _workMode = v ?? _workMode),
+                      CustomTextField(
+                        label: 'Role Description',
+                        controller: _descriptionController,
+                        hint: 'Describe the responsibilities, project scope, and expectations...',
+                        icon: Icons.description_outlined,
+                        maxLines: 4,
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Enter a description' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      ChipInput(
+                        label: 'Skills Required',
+                        values: _requiredSkills,
+                        hint: 'Add a skill and press Enter',
+                        onChanged: (v) => setState(() {
+                          _requiredSkills
+                            ..clear()
+                            ..addAll(v);
+                        }),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          const Text('Suggested:',
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          for (final skill in _suggestedSkills)
+                            ActionChip(
+                              label: Text(skill),
+                              onPressed: () => _addSuggestedSkill(skill),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       Text('Application Deadline (optional)',
@@ -247,14 +289,68 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
                       ),
                       const SizedBox(height: 28),
                       CustomButton(
-                        label: _isEditing ? 'Save Changes' : 'Post Opportunity',
+                        label: 'Save as Draft',
+                        variant: ButtonVariant.outlined,
                         isLoading: _saving,
-                        onPressed: _submit,
+                        onPressed: () => _submit(OpportunityStatus.draft),
+                      ),
+                      const SizedBox(height: 12),
+                      CustomButton(
+                        label: 'Publish Opportunity',
+                        isLoading: _saving,
+                        onPressed: () => _submit(OpportunityStatus.open),
                       ),
                     ],
                   ),
                 ),
               ),
+      ),
+    );
+  }
+}
+
+class _WorkModeCard extends StatelessWidget {
+  const _WorkModeCard({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 22),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryLight : Colors.white,
+          border: Border.all(
+            color: selected ? AppColors.navy : AppColors.border,
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 28, color: selected ? AppColors.navy : AppColors.textSecondary),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: selected ? AppColors.navy : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
