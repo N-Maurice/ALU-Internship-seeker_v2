@@ -97,8 +97,8 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
 
     final user = ref.read(authStateChangesProvider).value;
     final startup = ref.read(myStartupProvider).value;
-    if (user == null || startup == null || !startup.isVerified) {
-      context.showSnack('Your startup must be approved before you can post.', isError: true);
+    if (user == null || startup == null) {
+      context.showSnack('Could not find your startup. Please try again.', isError: true);
       return;
     }
 

@@ -11,8 +11,6 @@ import '../../../shared/widgets/section_card.dart';
 import '../../authentication/providers/auth_provider.dart';
 import '../../applications/providers/application_provider.dart';
 import '../../opportunities/providers/opportunity_provider.dart';
-import '../../startups/providers/startup_provider.dart';
-import '../widgets/verification_banner.dart';
 
 class FounderDashboardScreen extends ConsumerWidget {
   const FounderDashboardScreen({super.key});
@@ -20,26 +18,17 @@ class FounderDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(currentUserProfileProvider).value;
-    final startup = ref.watch(myStartupProvider).value;
     final opportunities = ref.watch(myOpportunitiesProvider).value ?? const [];
     final applicants = ref.watch(applicantsForStartupProvider).value ?? const [];
-    final isVerified = startup?.isVerified ?? false;
     final firstName = (profile?.fullName ?? '').trim().split(' ').firstOrNullSafe;
 
-    void postOpportunity() {
-      if (isVerified) {
-        context.push('/founder/opportunities/new');
-      } else {
-        context.showSnack('Your startup must be approved before you can post.',
-            isError: true);
-      }
-    }
+    void postOpportunity() => context.push('/founder/opportunities/new');
 
     return Scaffold(
       appBar: const FounderTopBar(),
       floatingActionButton: FloatingActionButton(
         onPressed: postOpportunity,
-        backgroundColor: isVerified ? AppColors.navy : AppColors.textMuted,
+        backgroundColor: AppColors.navy,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: SafeArea(
@@ -58,12 +47,8 @@ class FounderDashboardScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             CustomButton(
               label: '+ Post New Opportunity',
-              onPressed: isVerified ? postOpportunity : null,
+              onPressed: postOpportunity,
             ),
-            if (!isVerified && startup != null) ...[
-              const SizedBox(height: 16),
-              VerificationBanner(status: startup.verificationStatus),
-            ],
             const SizedBox(height: 20),
             Row(
               children: [

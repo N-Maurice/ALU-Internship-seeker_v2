@@ -10,34 +10,25 @@ import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/founder_top_bar.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../opportunities/providers/opportunity_provider.dart';
-import '../../startups/providers/startup_provider.dart';
-import '../widgets/verification_banner.dart';
 
 class MyOpportunitiesScreen extends ConsumerWidget {
   const MyOpportunitiesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final startupAsync = ref.watch(myStartupProvider);
     final opportunitiesAsync = ref.watch(myOpportunitiesProvider);
-    final isVerified = startupAsync.value?.isVerified ?? false;
 
     return Scaffold(
       appBar: const FounderTopBar(),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: isVerified ? () => context.push('/founder/opportunities/new') : null,
-        backgroundColor: isVerified ? AppColors.navy : AppColors.textMuted,
+        onPressed: () => context.push('/founder/opportunities/new'),
+        backgroundColor: AppColors.navy,
         icon: const Icon(Icons.add),
         label: const Text('Post Opportunity'),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            if (!isVerified && startupAsync.value != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: VerificationBanner(status: startupAsync.value!.verificationStatus),
-              ),
             Expanded(
               child: opportunitiesAsync.when(
                 loading: () => const SkeletonList(),

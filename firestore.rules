@@ -2,13 +2,12 @@ rules_version = '2';
 
 // Firestore security rules for ALU Venture Connect.
 //
-// A few rules below call get() on another document (isFounder,
-// isVerifiedStartup, isAdmin) to check ownership/role. Each get() is a
-// billed Firestore read charged against the request, on top of whatever
-// documents the query itself returns — acceptable at this app's current
-// scale, but worth knowing if opportunity/application volume grows a lot
-// (the fix then is denormalizing verificationStatus onto the opportunity
-// at write time instead of re-checking it live).
+// Startup verification is no longer required to post opportunities — any
+// founder can post for their own startup, regardless of `verificationStatus`
+// (kept as a field/admin screen for possible future use, just not enforced
+// as a gate here). isFounder() still does a get() to confirm ownership,
+// which is a billed Firestore read on top of whatever the query returns —
+// acceptable at this app's scale.
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {
@@ -24,10 +23,6 @@ service cloud.firestore {
         get(/databases/$(database)/documents/startups/$(startupId)).data.ownerUid == request.auth.uid;
     }
 
-    function isVerifiedStartup(startupId) {
-      return get(/databases/$(database)/documents/startups/$(startupId)).data.verificationStatus == 'verified';
-    }
-
     function isAdmin() {
       return isSignedIn() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
@@ -41,15 +36,12 @@ service cloud.firestore {
     }
 
     // opportunities/{opportunityId} — readable by any signed-in user;
-    // creatable only by the founder of a startup that has actually been
-    // verified (the real enforcement of "only approved startups may post" —
-    // hiding the button in the UI is a courtesy, this is the boundary).
+    // creatable by any founder for their own startup (no verification gate).
     match /opportunities/{opportunityId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() &&
         request.auth.uid == request.resource.data.postedByUid &&
-        isFounder(request.resource.data.startupId) &&
-        isVerifiedStartup(request.resource.data.startupId);
+        isFounder(request.resource.data.startupId);
       allow update, delete: if isSignedIn() &&
         request.auth.uid == resource.data.postedByUid;
     }
@@ -68,14 +60,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // startups/{startupId} — a founder creates and edits their own startup,
-    // but cannot touch their own verificationStatus; only an admin can flip
-    // that field, and only that field.
+    // startups/{startupId} — a founder creates and edits their own startup.
+    // verificationStatus is still admin-only to change post-creation (kept
+    // for a possible future re-introduction of a review flow), but it's no
+    // longer required to be 'pending' at creation, and no longer gates
+    // anything on the opportunities rule above.
     match /startups/{startupId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() &&
-        request.auth.uid == request.resource.data.ownerUid &&
-        request.resource.data.verificationStatus == 'pending';
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.ownerUid;
       allow update: if isSignedIn() && (
         (request.auth.uid == resource.data.ownerUid &&
           request.resource.data.verificationStatus == resource.data.verificationStatus) ||

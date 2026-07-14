@@ -48,6 +48,7 @@ class _FounderOnboardingScreenState extends ConsumerState<FounderOnboardingScree
             industry: _industryController.text.trim(),
             description: _descriptionController.text.trim(),
             ownerUid: uid,
+            verificationStatus: VerificationStatus.verified,
           ),
         );
     if (!created) {
@@ -88,7 +89,7 @@ class _FounderOnboardingScreenState extends ConsumerState<FounderOnboardingScree
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  "Your startup will need to be approved by an ALU admin before you can post opportunities — you'll see its status on your Startup Profile tab once you're in.",
+                  "This is what students will see when they view your opportunities. You'll be able to post right away once you're in.",
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 24),
