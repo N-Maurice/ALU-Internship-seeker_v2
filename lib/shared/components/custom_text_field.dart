@@ -15,6 +15,7 @@ class CustomTextField extends StatefulWidget {
     this.textInputAction,
     this.onChanged,
     this.showLabel = true,
+    this.maxLines = 1,
   });
 
   final String label;
@@ -29,6 +30,7 @@ class CustomTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
   final bool showLabel;
+  final int maxLines;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -54,6 +56,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           validator: widget.validator,
           textInputAction: widget.textInputAction,
           onChanged: widget.onChanged,
+          maxLines: widget.obscureText ? 1 : widget.maxLines,
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: widget.icon != null ? Icon(widget.icon) : null,

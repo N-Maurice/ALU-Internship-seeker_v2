@@ -34,6 +34,7 @@ class OpportunityModel {
     required this.startupId,
     required this.startupName,
     this.startupLogoUrl,
+    required this.postedByUid,
     required this.title,
     required this.description,
     this.category = '',
@@ -50,6 +51,7 @@ class OpportunityModel {
   final String startupId;
   final String startupName;
   final String? startupLogoUrl;
+  final String postedByUid;
   final String title;
   final String description;
   final String category;
@@ -67,6 +69,7 @@ class OpportunityModel {
         startupId: map['startupId'] as String? ?? '',
         startupName: map['startupName'] as String? ?? '',
         startupLogoUrl: map['startupLogoUrl'] as String?,
+        postedByUid: map['postedByUid'] as String? ?? '',
         title: map['title'] as String? ?? '',
         description: map['description'] as String? ?? '',
         category: map['category'] as String? ?? '',
@@ -84,6 +87,7 @@ class OpportunityModel {
         'startupId': startupId,
         'startupName': startupName,
         'startupLogoUrl': startupLogoUrl,
+        'postedByUid': postedByUid,
         'title': title,
         'description': description,
         'category': category,

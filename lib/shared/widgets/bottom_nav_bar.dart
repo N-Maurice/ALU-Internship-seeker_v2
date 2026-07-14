@@ -50,3 +50,38 @@ class AppShellScaffold extends StatelessWidget {
     );
   }
 }
+
+/// Bottom nav for the founder's 2-tab shell — deliberately smaller than the
+/// student shell, since applicants/messaging aren't tabs of their own (see
+/// `app_routes.dart` for why).
+class FounderShellScaffold extends StatelessWidget {
+  const FounderShellScaffold({super.key, required this.navigationShell});
+
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: navigationShell,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) => navigationShell.goBranch(
+          index,
+          initialLocation: index == navigationShell.currentIndex,
+        ),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.work_outline),
+            selectedIcon: Icon(Icons.work),
+            label: 'Opportunities',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.business_outlined),
+            selectedIcon: Icon(Icons.business),
+            label: 'Startup',
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/exceptions.dart';
 import '../../../models/opportunity_model.dart';
 import '../../../providers/app_providers.dart';
 import '../../../repositories/opportunity_repository.dart';
@@ -47,3 +48,63 @@ final savedOpportunitiesProvider = StreamProvider<List<OpportunityModel>>((ref) 
         );
   });
 });
+
+/// The signed-in founder's own postings, re-subscribing through their
+/// startup — a founder has no postings until `myStartupProvider` resolves.
+final myOpportunitiesProvider = StreamProvider<List<OpportunityModel>>((ref) {
+  final authRepo = ref.watch(authRepositoryProvider);
+  final startupRepo = ref.watch(startupRepositoryProvider);
+  final opportunityRepo = ref.watch(opportunityRepositoryProvider);
+  return authRepo.authStateChanges.asyncExpand((user) {
+    if (user == null) return Stream.value(const <OpportunityModel>[]);
+    return startupRepo.streamMine(user.uid).asyncExpand(
+          (startup) => startup == null
+              ? Stream.value(const <OpportunityModel>[])
+              : opportunityRepo.streamForStartup(startup.id),
+        );
+  });
+});
+
+final opportunityControllerProvider =
+    NotifierProvider<OpportunityController, AsyncValue<void>>(OpportunityController.new);
+
+class OpportunityController extends Notifier<AsyncValue<void>> {
+  @override
+  AsyncValue<void> build() => const AsyncData(null);
+
+  Future<bool> create(OpportunityModel opportunity) async {
+    state = const AsyncLoading();
+    try {
+      await ref.read(opportunityRepositoryProvider).create(opportunity);
+      state = const AsyncData(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError(mapExceptionToFailure(e), st);
+      return false;
+    }
+  }
+
+  Future<bool> update(String id, Map<String, dynamic> data) async {
+    state = const AsyncLoading();
+    try {
+      await ref.read(opportunityRepositoryProvider).update(id, data);
+      state = const AsyncData(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError(mapExceptionToFailure(e), st);
+      return false;
+    }
+  }
+
+  Future<bool> setStatus(String id, OpportunityStatus status) async {
+    state = const AsyncLoading();
+    try {
+      await ref.read(opportunityRepositoryProvider).setStatus(id, status);
+      state = const AsyncData(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError(mapExceptionToFailure(e), st);
+      return false;
+    }
+  }
+}

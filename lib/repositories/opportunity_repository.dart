@@ -31,6 +31,13 @@ abstract class OpportunityRepository {
   Stream<List<OpportunityModel>> streamOpportunities(OpportunityFilter filter);
   Future<OpportunityModel?> getById(String id);
   Stream<List<OpportunityModel>> streamByIds(List<String> ids);
+
+  /// A founder's own postings, newest first, regardless of open/closed status.
+  Stream<List<OpportunityModel>> streamForStartup(String startupId);
+
+  Future<String> create(OpportunityModel opportunity);
+  Future<void> update(String id, Map<String, dynamic> data);
+  Future<void> setStatus(String id, OpportunityStatus status);
 }
 
 class FirebaseOpportunityRepository implements OpportunityRepository {
@@ -86,4 +93,26 @@ class FirebaseOpportunityRepository implements OpportunityRepository {
         .map((snap) =>
             snap.docs.map((d) => OpportunityModel.fromMap(d.id, d.data())).toList());
   }
+
+  @override
+  Stream<List<OpportunityModel>> streamForStartup(String startupId) => _opportunities
+      .where('startupId', isEqualTo: startupId)
+      .orderBy('postedAt', descending: true)
+      .snapshots()
+      .map((snap) =>
+          snap.docs.map((d) => OpportunityModel.fromMap(d.id, d.data())).toList());
+
+  @override
+  Future<String> create(OpportunityModel opportunity) async {
+    final docRef = await _opportunities.add(opportunity.toMap());
+    return docRef.id;
+  }
+
+  @override
+  Future<void> update(String id, Map<String, dynamic> data) =>
+      _opportunities.doc(id).update(data);
+
+  @override
+  Future<void> setStatus(String id, OpportunityStatus status) =>
+      _opportunities.doc(id).update({'status': status.name});
 }

@@ -16,8 +16,11 @@ enum VerificationStatus {
       };
 }
 
-/// Read-only in the student-facing phase — startups are managed by founders
-/// in a later phase, but students need to view a startup's public profile.
+/// A startup's public profile, owned by exactly one founder (`ownerUid`).
+/// Read by students on every opportunity's detail page; written by the
+/// owning founder (everything except `verificationStatus`) and by admins
+/// (`verificationStatus` only) — see `firestore.rules` for the actual
+/// enforcement of that split.
 class StartupModel {
   const StartupModel({
     required this.id,
@@ -46,6 +49,32 @@ class StartupModel {
         verificationStatus:
             VerificationStatus.fromString(map['verificationStatus'] as String?),
         ownerUid: map['ownerUid'] as String?,
+      );
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'industry': industry,
+        'description': description,
+        'logoUrl': logoUrl,
+        'verificationStatus': verificationStatus.name,
+        'ownerUid': ownerUid,
+      };
+
+  StartupModel copyWith({
+    String? name,
+    String? industry,
+    String? description,
+    String? logoUrl,
+    VerificationStatus? verificationStatus,
+  }) =>
+      StartupModel(
+        id: id,
+        name: name ?? this.name,
+        industry: industry ?? this.industry,
+        description: description ?? this.description,
+        logoUrl: logoUrl ?? this.logoUrl,
+        verificationStatus: verificationStatus ?? this.verificationStatus,
+        ownerUid: ownerUid,
       );
 
   bool get isVerified => verificationStatus == VerificationStatus.verified;

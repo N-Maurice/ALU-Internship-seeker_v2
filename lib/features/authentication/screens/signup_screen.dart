@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utilities/validators.dart';
+import '../../../models/user_model.dart';
 import '../../../shared/components/custom_button.dart';
 import '../../../shared/components/custom_text_field.dart';
 import '../../../shared/extensions/context_extensions.dart';
@@ -24,6 +25,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  UserRole _role = UserRole.student;
   int? _graduationYear;
   bool _agreedToTerms = false;
   bool _triedSubmit = false;
@@ -40,13 +42,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Future<void> _submit() async {
     setState(() => _triedSubmit = true);
     final formValid = _formKey.currentState!.validate();
-    if (!formValid || _graduationYear == null || !_agreedToTerms) return;
+    final needsGraduationYear = _role == UserRole.student && _graduationYear == null;
+    if (!formValid || needsGraduationYear || !_agreedToTerms) return;
 
     await ref.read(authControllerProvider.notifier).signUp(
           fullName: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          graduationYear: _graduationYear!,
+          role: _role,
+          graduationYear: _graduationYear,
         );
   }
 
@@ -101,6 +105,26 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Text('I am a...', style: Theme.of(context).textTheme.labelLarge),
+                          const SizedBox(height: 6),
+                          SegmentedButton<UserRole>(
+                            segments: const [
+                              ButtonSegment(
+                                value: UserRole.student,
+                                label: Text('Student'),
+                                icon: Icon(Icons.school_outlined),
+                              ),
+                              ButtonSegment(
+                                value: UserRole.founder,
+                                label: Text('Startup Founder'),
+                                icon: Icon(Icons.rocket_launch_outlined),
+                              ),
+                            ],
+                            selected: {_role},
+                            onSelectionChanged: (selection) =>
+                                setState(() => _role = selection.first),
+                          ),
+                          const SizedBox(height: 16),
                           CustomTextField(
                             label: 'Full Name',
                             controller: _nameController,
@@ -117,21 +141,25 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             keyboardType: TextInputType.emailAddress,
                             validator: Validators.aluEmail,
                           ),
-                          const SizedBox(height: 16),
-                          Text('Graduation Year', style: Theme.of(context).textTheme.labelLarge),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<int>(
-                            initialValue: _graduationYear,
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.school_outlined),
-                              hintText: 'Select Year',
+                          if (_role == UserRole.student) ...[
+                            const SizedBox(height: 16),
+                            Text('Graduation Year',
+                                style: Theme.of(context).textTheme.labelLarge),
+                            const SizedBox(height: 6),
+                            DropdownButtonFormField<int>(
+                              initialValue: _graduationYear,
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.school_outlined),
+                                hintText: 'Select Year',
+                              ),
+                              items: kGraduationYears
+                                  .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
+                                  .toList(),
+                              onChanged: (v) => setState(() => _graduationYear = v),
+                              validator: (v) =>
+                                  v == null ? 'Select your graduation year' : null,
                             ),
-                            items: kGraduationYears
-                                .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-                                .toList(),
-                            onChanged: (v) => setState(() => _graduationYear = v),
-                            validator: (v) => v == null ? 'Select your graduation year' : null,
-                          ),
+                          ],
                           const SizedBox(height: 16),
                           CustomTextField(
                             label: 'Password',
@@ -182,14 +210,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             isLoading: isLoading,
                             onPressed: _submit,
                           ),
-                          const SizedBox(height: 14),
-                          const AuthDivider(label: 'OR'),
-                          const SizedBox(height: 14),
-                          GoogleSignInButton(
-                            isLoading: isLoading,
-                            onPressed: () =>
-                                ref.read(authControllerProvider.notifier).signInWithGoogle(),
-                          ),
+                          if (_role == UserRole.student) ...[
+                            const SizedBox(height: 14),
+                            const AuthDivider(label: 'OR'),
+                            const SizedBox(height: 14),
+                            GoogleSignInButton(
+                              isLoading: isLoading,
+                              onPressed: () =>
+                                  ref.read(authControllerProvider.notifier).signInWithGoogle(),
+                            ),
+                          ],
                           const SizedBox(height: 18),
                           const AuthDivider(label: 'ALREADY HAVE AN ACCOUNT?'),
                           const SizedBox(height: 14),

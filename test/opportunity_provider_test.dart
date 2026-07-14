@@ -13,6 +13,7 @@ class FakeOpportunityRepository implements OpportunityRepository {
       id: 'remote-1',
       startupId: 's1',
       startupName: 'EcoFarm AI',
+      postedByUid: 'founder1',
       title: 'Data Analyst Intern',
       description: 'Remote data role.',
       duration: '4 Months',
@@ -24,6 +25,7 @@ class FakeOpportunityRepository implements OpportunityRepository {
       id: 'onsite-1',
       startupId: 's2',
       startupName: 'Zuri Tech Solutions',
+      postedByUid: 'founder2',
       title: 'Software Engineering Intern',
       description: 'On-site engineering role.',
       duration: '3 Months',
@@ -53,6 +55,22 @@ class FakeOpportunityRepository implements OpportunityRepository {
   @override
   Stream<List<OpportunityModel>> streamByIds(List<String> ids) =>
       Stream.value(opportunities.where((o) => ids.contains(o.id)).toList());
+
+  @override
+  Stream<List<OpportunityModel>> streamForStartup(String startupId) =>
+      Stream.value(opportunities.where((o) => o.startupId == startupId).toList());
+
+  @override
+  Future<String> create(OpportunityModel opportunity) async {
+    opportunities.add(opportunity);
+    return opportunity.id;
+  }
+
+  @override
+  Future<void> update(String id, Map<String, dynamic> data) async {}
+
+  @override
+  Future<void> setStatus(String id, OpportunityStatus status) async {}
 }
 
 void main() {

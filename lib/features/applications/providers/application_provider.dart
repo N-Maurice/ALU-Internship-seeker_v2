@@ -20,6 +20,13 @@ final hasAppliedProvider = FutureProvider.family<bool, String>((ref, opportunity
   return ref.watch(applicationRepositoryProvider).hasApplied(user.uid, opportunityId);
 });
 
+/// A founder's applicants for one of their own opportunities — read access
+/// beyond that is blocked by `firestore.rules`.
+final applicantsForOpportunityProvider =
+    StreamProvider.family<List<ApplicationModel>, String>((ref, opportunityId) {
+  return ref.watch(applicationRepositoryProvider).streamForOpportunity(opportunityId);
+});
+
 final applicationControllerProvider =
     NotifierProvider<ApplicationController, AsyncValue<void>>(ApplicationController.new);
 
@@ -47,6 +54,19 @@ class ApplicationController extends Notifier<AsyncValue<void>> {
             ),
           );
       ref.invalidate(hasAppliedProvider(opportunity.id));
+      state = const AsyncData(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError(mapExceptionToFailure(e), st);
+      return false;
+    }
+  }
+
+  /// Founder-only in practice — enforced by `firestore.rules`, not here.
+  Future<bool> updateStatus(String applicationId, ApplicationStatus status) async {
+    state = const AsyncLoading();
+    try {
+      await ref.read(applicationRepositoryProvider).updateStatus(applicationId, status);
       state = const AsyncData(null);
       return true;
     } catch (e, st) {

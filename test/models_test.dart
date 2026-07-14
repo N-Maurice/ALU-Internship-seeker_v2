@@ -47,6 +47,7 @@ void main() {
         id: 'o1',
         startupId: 's1',
         startupName: 'Nexus Analytics',
+        postedByUid: 'founder1',
         title: 'Product Design Fellow',
         description: 'Bridge user needs and technical feasibility.',
         requiredSkills: const ['Figma', 'User Research'],

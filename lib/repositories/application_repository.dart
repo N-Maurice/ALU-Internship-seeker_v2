@@ -7,6 +7,11 @@ abstract class ApplicationRepository {
   Stream<List<ApplicationModel>> streamForStudent(String studentId);
   Future<bool> hasApplied(String studentId, String opportunityId);
   Future<void> apply(ApplicationModel application);
+
+  /// Applicants for one of a founder's opportunities.
+  Stream<List<ApplicationModel>> streamForOpportunity(String opportunityId);
+
+  Future<void> updateStatus(String applicationId, ApplicationStatus status);
 }
 
 class FirebaseApplicationRepository implements ApplicationRepository {
@@ -38,4 +43,19 @@ class FirebaseApplicationRepository implements ApplicationRepository {
   @override
   Future<void> apply(ApplicationModel application) =>
       _applications.add(application.toMap());
+
+  @override
+  Stream<List<ApplicationModel>> streamForOpportunity(String opportunityId) => _applications
+      .where('opportunityId', isEqualTo: opportunityId)
+      .orderBy('appliedAt', descending: true)
+      .snapshots()
+      .map((snap) =>
+          snap.docs.map((d) => ApplicationModel.fromMap(d.id, d.data())).toList());
+
+  @override
+  Future<void> updateStatus(String applicationId, ApplicationStatus status) =>
+      _applications.doc(applicationId).update({
+        'status': status.name,
+        'updatedAt': Timestamp.now(),
+      });
 }

@@ -1,10 +1,14 @@
 rules_version = '2';
 
-// Firestore security rules for the student-facing phase of ALU Venture
-// Connect. Founder-side writes to `opportunities`/`startups` are already
-// expressed here (matched on `postedByUid`/`ownerUid`) even though no
-// founder UI exists yet, so this phase's data model doesn't need to change
-// when that UI is added.
+// Firestore security rules for ALU Venture Connect.
+//
+// A few rules below call get() on another document (isFounder,
+// isVerifiedStartup, isAdmin) to check ownership/role. Each get() is a
+// billed Firestore read charged against the request, on top of whatever
+// documents the query itself returns — acceptable at this app's current
+// scale, but worth knowing if opportunity/application volume grows a lot
+// (the fix then is denormalizing verificationStatus onto the opportunity
+// at write time instead of re-checking it live).
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {
@@ -15,6 +19,20 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function isFounder(startupId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/startups/$(startupId)).data.ownerUid == request.auth.uid;
+    }
+
+    function isVerifiedStartup(startupId) {
+      return get(/databases/$(database)/documents/startups/$(startupId)).data.verificationStatus == 'verified';
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // users/{uid} — one profile document per account, keyed by auth uid.
     match /users/{uid} {
       allow read: if isSignedIn();
@@ -23,30 +41,48 @@ service cloud.firestore {
     }
 
     // opportunities/{opportunityId} — readable by any signed-in user;
-    // writable only by the founder who posted it.
+    // creatable only by the founder of a startup that has actually been
+    // verified (the real enforcement of "only approved startups may post" —
+    // hiding the button in the UI is a courtesy, this is the boundary).
     match /opportunities/{opportunityId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() &&
-        request.auth.uid == request.resource.data.postedByUid;
+        request.auth.uid == request.resource.data.postedByUid &&
+        isFounder(request.resource.data.startupId) &&
+        isVerifiedStartup(request.resource.data.startupId);
       allow update, delete: if isSignedIn() &&
         request.auth.uid == resource.data.postedByUid;
     }
 
-    // applications/{applicationId} — a student can create and read their
-    // own applications. Status updates are reserved for the founder-side
-    // phase and are not yet permitted from the client.
+    // applications/{applicationId} — a student can create/read their own
+    // applications; the founder who owns the startup being applied to can
+    // also read them and update only the status (not rewrite the applicant's
+    // data).
     match /applications/{applicationId} {
-      allow read: if isSignedIn() && request.auth.uid == resource.data.studentId;
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.studentId || isFounder(resource.data.startupId));
       allow create: if isSignedIn() &&
         request.auth.uid == request.resource.data.studentId;
-      allow update, delete: if false;
+      allow update: if isSignedIn() && isFounder(resource.data.startupId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if false;
     }
 
-    // startups/{startupId} — read-only in this phase; writable only by the
-    // owning founder once that workflow exists.
+    // startups/{startupId} — a founder creates and edits their own startup,
+    // but cannot touch their own verificationStatus; only an admin can flip
+    // that field, and only that field.
     match /startups/{startupId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == resource.data.ownerUid;
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.ownerUid &&
+        request.resource.data.verificationStatus == 'pending';
+      allow update: if isSignedIn() && (
+        (request.auth.uid == resource.data.ownerUid &&
+          request.resource.data.verificationStatus == resource.data.verificationStatus) ||
+        (isAdmin() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificationStatus']))
+      );
+      allow delete: if false;
     }
   }
 }

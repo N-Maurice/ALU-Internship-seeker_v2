@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/admin/screens/admin_pending_screen.dart';
 import '../features/applications/screens/applications_screen.dart';
 import '../features/authentication/providers/auth_provider.dart';
 import '../features/authentication/screens/forgot_password_screen.dart';
@@ -10,16 +11,27 @@ import '../features/authentication/screens/signup_screen.dart';
 import '../features/authentication/screens/verify_email_screen.dart';
 import '../features/authentication/screens/welcome_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
+import '../features/founder/screens/applicants_screen.dart';
+import '../features/founder/screens/founder_startup_screen.dart';
+import '../features/founder/screens/my_opportunities_screen.dart';
+import '../features/founder/screens/opportunity_form_screen.dart';
 import '../features/messaging/screens/messages_screen.dart';
+import '../features/onboarding/screens/founder_onboarding_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/opportunities/screens/opportunities_screen.dart';
 import '../features/opportunities/screens/opportunity_detail_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/profile/screens/saved_opportunities_screen.dart';
 import '../features/startups/screens/startup_profile_screen.dart';
+import '../models/user_model.dart';
 import '../shared/widgets/bottom_nav_bar.dart';
 
 const _authRoutes = {'/welcome', '/login', '/signup', '/forgot-password'};
+
+/// The student shell's 5 tabs — a founder landing on any of these gets
+/// bounced to their own shell (defense in depth; `firestore.rules` is the
+/// real boundary, this just avoids a confusing mixed-role UI state).
+const _studentShellRoutes = {'/home', '/opportunities', '/applications', '/messages', '/profile'};
 
 /// Bridges Riverpod auth/profile state into go_router's redirect logic:
 /// listens to both streams and asks go_router to re-evaluate `redirect`
@@ -52,15 +64,31 @@ class _RouterNotifier extends ChangeNotifier {
 
     final profileAsync = _ref.read(currentUserProfileProvider);
     if (profileAsync.isLoading && !profileAsync.hasValue) return null;
+    final profile = profileAsync.value;
 
-    final onboarded = profileAsync.value?.onboardingComplete ?? false;
-    if (!onboarded) {
-      return loc == '/onboarding' ? null : '/onboarding';
+    // Admins skip onboarding entirely and get a single screen, not a shell.
+    if (profile?.role == UserRole.admin) {
+      return loc == '/admin/pending' ? null : '/admin/pending';
     }
 
-    final shouldLeave =
-        _authRoutes.contains(loc) || loc == '/onboarding' || loc == '/verify-email';
-    return shouldLeave ? '/home' : null;
+    final isFounder = profile?.role == UserRole.founder;
+    final onboardingRoute = isFounder ? '/founder-onboarding' : '/onboarding';
+    final onboarded = profile?.onboardingComplete ?? false;
+    if (!onboarded) {
+      return loc == onboardingRoute ? null : onboardingRoute;
+    }
+
+    final onAuthOrOnboardingRoute = _authRoutes.contains(loc) ||
+        loc == '/onboarding' ||
+        loc == '/founder-onboarding' ||
+        loc == '/verify-email';
+    final onWrongRoleShell =
+        isFounder ? _studentShellRoutes.contains(loc) : loc.startsWith('/founder');
+
+    if (onAuthOrOnboardingRoute || onWrongRoleShell) {
+      return isFounder ? '/founder/opportunities' : '/home';
+    }
+    return null;
   }
 }
 
@@ -83,6 +111,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/verify-email', builder: (_, __) => const VerifyEmailScreen()),
       GoRoute(path: '/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(
+        path: '/founder-onboarding',
+        builder: (_, __) => const FounderOnboardingScreen(),
+      ),
+      GoRoute(path: '/admin/pending', builder: (_, __) => const AdminPendingScreen()),
+      GoRoute(
         path: '/opportunities/:id',
         builder: (_, state) =>
             OpportunityDetailScreen(opportunityId: state.pathParameters['id']!),
@@ -95,6 +128,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile/saved',
         builder: (_, __) => const SavedOpportunitiesScreen(),
+      ),
+      GoRoute(
+        path: '/founder/opportunities/new',
+        builder: (_, __) => const OpportunityFormScreen(),
+      ),
+      GoRoute(
+        path: '/founder/opportunities/:id/edit',
+        builder: (_, state) =>
+            OpportunityFormScreen(opportunityId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/founder/opportunities/:id/applicants',
+        builder: (_, state) =>
+            ApplicantsScreen(opportunityId: state.pathParameters['id']!),
       ),
       StatefulShellRoute.indexedStack(
         builder: (_, __, shell) => AppShellScaffold(navigationShell: shell),
@@ -113,6 +160,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+          ]),
+        ],
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (_, __, shell) => FounderShellScaffold(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(
+              path: '/founder/opportunities',
+              builder: (_, __) => const MyOpportunitiesScreen(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/founder/startup', builder: (_, __) => const FounderStartupScreen()),
           ]),
         ],
       ),

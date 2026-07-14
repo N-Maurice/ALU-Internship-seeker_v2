@@ -23,6 +23,13 @@ final currentUserProfileProvider = StreamProvider<UserModel?>((ref) {
   );
 });
 
+/// A one-shot lookup of *any* student's profile by uid — unlike
+/// [currentUserProfileProvider], which only covers the signed-in user. Used
+/// by the founder's applicants screen to show who actually applied.
+final studentProfileByIdProvider = FutureProvider.family<UserModel?, String>((ref, uid) {
+  return ref.watch(userRepositoryProvider).streamProfile(uid).first;
+});
+
 final authControllerProvider =
     NotifierProvider<AuthController, AsyncValue<void>>(AuthController.new);
 
@@ -34,7 +41,8 @@ class AuthController extends Notifier<AsyncValue<void>> {
     required String fullName,
     required String email,
     required String password,
-    required int graduationYear,
+    required UserRole role,
+    int? graduationYear,
   }) async {
     state = const AsyncLoading();
     try {
@@ -46,7 +54,8 @@ class AuthController extends Notifier<AsyncValue<void>> {
               uid: uid,
               email: email,
               fullName: fullName,
-              graduationYear: graduationYear,
+              role: role,
+              graduationYear: role == UserRole.student ? graduationYear : null,
               createdAt: DateTime.now(),
             ),
           );
