@@ -14,9 +14,9 @@ enum ApplicationStatus {
       );
 
   String get label => switch (this) {
-        ApplicationStatus.submitted => 'Submitted',
-        ApplicationStatus.underReview => 'Under Review',
-        ApplicationStatus.interview => 'Interview',
+        ApplicationStatus.submitted => 'New',
+        ApplicationStatus.underReview => 'Reviewing',
+        ApplicationStatus.interview => 'Interviewed',
         ApplicationStatus.accepted => 'Accepted',
         ApplicationStatus.rejected => 'Rejected',
       };

@@ -84,7 +84,7 @@ void main() {
       final restored = ApplicationModel.fromMap('a1', application.toMap());
 
       expect(restored.status, ApplicationStatus.interview);
-      expect(restored.status.label, 'Interview');
+      expect(restored.status.label, 'Interviewed');
       expect(restored.opportunityTitle, 'Product Design Fellow');
     });
   });

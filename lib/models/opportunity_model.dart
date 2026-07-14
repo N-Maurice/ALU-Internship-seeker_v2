@@ -18,6 +18,7 @@ enum WorkMode {
 }
 
 enum OpportunityStatus {
+  draft,
   open,
   closed;
 
@@ -101,4 +102,5 @@ class OpportunityModel {
       };
 
   bool get isOpen => status == OpportunityStatus.open;
+  bool get isDraft => status == OpportunityStatus.draft;
 }
