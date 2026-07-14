@@ -4,14 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/colors.dart';
 import '../../../models/opportunity_model.dart';
-import '../../../models/startup_model.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_state.dart';
+import '../../../shared/widgets/founder_top_bar.dart';
 import '../../../shared/widgets/loading_widget.dart';
-import '../../../shared/widgets/section_card.dart';
 import '../../opportunities/providers/opportunity_provider.dart';
 import '../../startups/providers/startup_provider.dart';
+import '../widgets/verification_banner.dart';
 
 class MyOpportunitiesScreen extends ConsumerWidget {
   const MyOpportunitiesScreen({super.key});
@@ -23,7 +23,7 @@ class MyOpportunitiesScreen extends ConsumerWidget {
     final isVerified = startupAsync.value?.isVerified ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Opportunities')),
+      appBar: const FounderTopBar(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: isVerified ? () => context.push('/founder/opportunities/new') : null,
         backgroundColor: isVerified ? AppColors.navy : AppColors.textMuted,
@@ -33,30 +33,10 @@ class MyOpportunitiesScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            if (!isVerified)
+            if (!isVerified && startupAsync.value != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: SectionCard(
-                  child: Row(
-                    children: [
-                      Icon(
-                        startupAsync.value?.verificationStatus == VerificationStatus.rejected
-                            ? Icons.cancel_outlined
-                            : Icons.hourglass_top_outlined,
-                        color: AppColors.warning,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          startupAsync.value?.verificationStatus == VerificationStatus.rejected
-                              ? 'Your startup was not approved. Check your Startup Profile tab for details.'
-                              : "Your startup is pending admin approval. You'll be able to post once it's approved.",
-                          style: const TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                child: VerificationBanner(status: startupAsync.value!.verificationStatus),
               ),
             Expanded(
               child: opportunitiesAsync.when(
@@ -91,10 +71,17 @@ class _OpportunityTile extends ConsumerWidget {
 
   final OpportunityModel opportunity;
 
+  (Color, String) get _statusStyle => switch (opportunity.status) {
+        OpportunityStatus.open => (AppColors.success, 'Open'),
+        OpportunityStatus.draft => (AppColors.textSecondary, 'Draft'),
+        OpportunityStatus.closed => (AppColors.error, 'Closed'),
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final (statusColor, statusLabel) = _statusStyle;
     return InkWell(
-      onTap: () => context.push('/founder/opportunities/${opportunity.id}/applicants'),
+      onTap: () => context.push('/founder/applicants?opportunityId=${opportunity.id}'),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -115,12 +102,12 @@ class _OpportunityTile extends ConsumerWidget {
                   Row(
                     children: [
                       Chip(
-                        label: Text(opportunity.isOpen ? 'Open' : 'Closed'),
-                        backgroundColor:
-                            opportunity.isOpen ? AppColors.successLight : AppColors.border,
+                        label: Text(statusLabel),
+                        backgroundColor: statusColor.withValues(alpha: 0.12),
                         labelStyle: TextStyle(
                           fontSize: 11,
-                          color: opportunity.isOpen ? AppColors.success : AppColors.textSecondary,
+                          color: statusColor,
+                          fontWeight: FontWeight.w700,
                         ),
                         visualDensity: VisualDensity.compact,
                         side: BorderSide.none,
@@ -137,23 +124,24 @@ class _OpportunityTile extends ConsumerWidget {
               icon: const Icon(Icons.edit_outlined, color: AppColors.navy),
               onPressed: () => context.push('/founder/opportunities/${opportunity.id}/edit'),
             ),
-            IconButton(
-              icon: Icon(
-                opportunity.isOpen ? Icons.pause_circle_outline : Icons.play_circle_outline,
-                color: AppColors.textSecondary,
+            if (!opportunity.isDraft)
+              IconButton(
+                icon: Icon(
+                  opportunity.isOpen ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                  color: AppColors.textSecondary,
+                ),
+                tooltip: opportunity.isOpen ? 'Close applications' : 'Reopen applications',
+                onPressed: () async {
+                  final success =
+                      await ref.read(opportunityControllerProvider.notifier).setStatus(
+                            opportunity.id,
+                            opportunity.isOpen ? OpportunityStatus.closed : OpportunityStatus.open,
+                          );
+                  if (!success && context.mounted) {
+                    context.showSnack('Could not update this opportunity.', isError: true);
+                  }
+                },
               ),
-              tooltip: opportunity.isOpen ? 'Close applications' : 'Reopen applications',
-              onPressed: () async {
-                final success =
-                    await ref.read(opportunityControllerProvider.notifier).setStatus(
-                          opportunity.id,
-                          opportunity.isOpen ? OpportunityStatus.closed : OpportunityStatus.open,
-                        );
-                if (!success && context.mounted) {
-                  context.showSnack('Could not update this opportunity.', isError: true);
-                }
-              },
-            ),
           ],
         ),
       ),
