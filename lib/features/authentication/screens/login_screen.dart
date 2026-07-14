@@ -109,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           CustomTextField(
                             label: 'Email Address',
                             controller: _emailController,
-                            hint: 'student@alueducation.com',
+                            hint: 'you@example.com',
                             icon: Icons.mail_outline,
                             keyboardType: TextInputType.emailAddress,
                             validator: Validators.email,

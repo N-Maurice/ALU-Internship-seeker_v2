@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../../core/constants/app_constants.dart';
 import '../../../core/errors/exceptions.dart';
 import '../../../core/errors/failure.dart';
 import '../../../models/user_model.dart';
@@ -82,12 +81,10 @@ class AuthController extends Notifier<AsyncValue<void>> {
     }
   }
 
-  /// Signs in with Google, restricted to ALU accounts (matching the same
-  /// domain rule as email/password signup) since anyone with a Google
-  /// account could otherwise authenticate. Creates a base Firestore profile
-  /// on a user's first Google sign-in, same as the email/password flow does
-  /// at signup — without it, the router's onboarding gate would have no
-  /// profile doc to check.
+  /// Signs in with Google, open to any Google account. Creates a base
+  /// Firestore profile on a user's first Google sign-in, same as the
+  /// email/password flow does at signup — without it, the router's
+  /// onboarding gate would have no profile doc to check.
   Future<bool> signInWithGoogle() async {
     state = const AsyncLoading();
     final authRepo = ref.read(authRepositoryProvider);
@@ -95,16 +92,6 @@ class AuthController extends Notifier<AsyncValue<void>> {
       final credential = await authRepo.signInWithGoogle();
       final user = credential.user!;
       final email = user.email ?? '';
-      final domain = email.contains('@') ? email.split('@').last.toLowerCase() : '';
-
-      if (!kAllowedEmailDomains.contains(domain)) {
-        await authRepo.signOut();
-        state = const AsyncError(
-          Failure('Please use your ALU Google account to continue.'),
-          StackTrace.empty,
-        );
-        return false;
-      }
 
       final userRepo = ref.read(userRepositoryProvider);
       final existingProfile = await userRepo.streamProfile(user.uid).first;

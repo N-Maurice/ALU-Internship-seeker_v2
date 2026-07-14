@@ -2,17 +2,17 @@ import 'package:alu_internship_seeker_ii/core/utilities/validators.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('Validators.aluEmail', () {
-    test('accepts an ALU student email', () {
-      expect(Validators.aluEmail('j.doe@alustudent.com'), isNull);
+  group('Validators.email', () {
+    test('accepts any valid email domain', () {
+      expect(Validators.email('j.doe@gmail.com'), isNull);
     });
 
-    test('rejects a non-ALU domain', () {
-      expect(Validators.aluEmail('j.doe@gmail.com'), isNotNull);
+    test('rejects a malformed email', () {
+      expect(Validators.email('not-an-email'), isNotNull);
     });
 
     test('rejects an empty value', () {
-      expect(Validators.aluEmail(''), isNotNull);
+      expect(Validators.email(''), isNotNull);
     });
   });
 

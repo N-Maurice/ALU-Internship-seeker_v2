@@ -140,7 +140,7 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Log out?'),
-        content: const Text('You can sign back in anytime with your ALU email.'),
+        content: const Text('You can sign back in anytime with your email.'),
         actions: [
           TextButton(onPressed: () => context.pop(false), child: const Text('Cancel')),
           FilledButton(onPressed: () => context.pop(true), child: const Text('Log Out')),

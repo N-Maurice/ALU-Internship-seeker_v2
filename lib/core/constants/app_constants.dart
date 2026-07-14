@@ -22,7 +22,4 @@ abstract final class AppRadius {
   static const lg = 12.0;
 }
 
-/// Domains allowed to sign up as students, matching the PDF's ALU email requirement.
-const kAllowedEmailDomains = ['alustudent.com', 'alueducation.com', 'alueducation.org'];
-
 const kGraduationYears = [2024, 2025, 2026, 2027, 2028, 2029];

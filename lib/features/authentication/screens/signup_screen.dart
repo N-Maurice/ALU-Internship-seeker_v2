@@ -134,12 +134,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           ),
                           const SizedBox(height: 16),
                           CustomTextField(
-                            label: 'ALU Email',
+                            label: 'Email Address',
                             controller: _emailController,
-                            hint: 'j.doe@alustudent.com',
+                            hint: 'j.doe@example.com',
                             icon: Icons.mail_outline,
                             keyboardType: TextInputType.emailAddress,
-                            validator: Validators.aluEmail,
+                            validator: Validators.email,
                           ),
                           if (_role == UserRole.student) ...[
                             const SizedBox(height: 16),

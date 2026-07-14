@@ -1,22 +1,8 @@
-import '../constants/app_constants.dart';
-
 abstract final class Validators {
   static String? fullName(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'Full name is required';
     if (v.length < 2) return 'Enter your full name';
-    return null;
-  }
-
-  static String? aluEmail(String? value) {
-    final v = value?.trim() ?? '';
-    if (v.isEmpty) return 'Email is required';
-    final emailPattern = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
-    if (!emailPattern.hasMatch(v)) return 'Enter a valid email address';
-    final domain = v.split('@').last.toLowerCase();
-    if (!kAllowedEmailDomains.contains(domain)) {
-      return 'Use your ALU email (${kAllowedEmailDomains.join(', ')})';
-    }
     return null;
   }
 
