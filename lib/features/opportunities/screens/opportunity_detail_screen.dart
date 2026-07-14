@@ -73,11 +73,20 @@ class _DetailContent extends ConsumerWidget {
               if (profile != null)
                 IconButton(
                   icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
-                  onPressed: () => ref.read(userRepositoryProvider).setSavedOpportunity(
-                        profile.uid,
-                        opportunity.id,
-                        !isSaved,
-                      ),
+                  onPressed: () async {
+                    try {
+                      await ref.read(userRepositoryProvider).setSavedOpportunity(
+                            profile.uid,
+                            opportunity.id,
+                            !isSaved,
+                          );
+                    } catch (_) {
+                      if (context.mounted) {
+                        context.showSnack('Could not update saved opportunities.',
+                            isError: true);
+                      }
+                    }
+                  },
                 ),
             ],
           ),

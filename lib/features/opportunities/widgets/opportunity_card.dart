@@ -6,6 +6,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/utilities/date_formatter.dart';
 import '../../../models/opportunity_model.dart';
 import '../../../providers/app_providers.dart';
+import '../../../shared/extensions/context_extensions.dart';
 import '../../authentication/providers/auth_provider.dart';
 
 class OpportunityCard extends ConsumerWidget {
@@ -49,11 +50,20 @@ class OpportunityCard extends ConsumerWidget {
                     visualDensity: VisualDensity.compact,
                     icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border,
                         color: AppColors.navy),
-                    onPressed: () => ref.read(userRepositoryProvider).setSavedOpportunity(
-                          profile.uid,
-                          opportunity.id,
-                          !isSaved,
-                        ),
+                    onPressed: () async {
+                      try {
+                        await ref.read(userRepositoryProvider).setSavedOpportunity(
+                              profile.uid,
+                              opportunity.id,
+                              !isSaved,
+                            );
+                      } catch (_) {
+                        if (context.mounted) {
+                          context.showSnack('Could not update saved opportunities.',
+                              isError: true);
+                        }
+                      }
+                    },
                   ),
               ],
             ),

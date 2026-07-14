@@ -41,7 +41,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return;
     }
     final uid = ref.read(authStateChangesProvider).value?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      context.showSnack('You appear to be signed out. Please sign in again.', isError: true);
+      return;
+    }
 
     setState(() => _saving = true);
     try {

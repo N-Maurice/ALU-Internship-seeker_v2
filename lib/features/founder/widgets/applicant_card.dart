@@ -5,6 +5,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/utilities/date_formatter.dart';
 import '../../../models/application_model.dart';
 import '../../../shared/components/profile_avatar.dart';
+import '../../../shared/extensions/context_extensions.dart';
 import '../../applications/providers/application_provider.dart';
 import '../../authentication/providers/auth_provider.dart';
 
@@ -86,11 +87,17 @@ class ApplicantCard extends ConsumerWidget {
                 items: ApplicationStatus.values
                     .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
                     .toList(),
-                onChanged: (status) {
+                onChanged: (status) async {
                   if (status == null || status == application.status) return;
-                  ref
+                  final success = await ref
                       .read(applicationControllerProvider.notifier)
                       .updateStatus(application.id, status);
+                  if (success && context.mounted) {
+                    context.showSnack('Status updated to ${status.label}.');
+                  } else if (context.mounted) {
+                    context.showSnack('Could not update this applicant\'s status.',
+                        isError: true);
+                  }
                 },
               ),
             ],

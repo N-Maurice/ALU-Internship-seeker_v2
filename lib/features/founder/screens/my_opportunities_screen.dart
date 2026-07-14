@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/colors.dart';
 import '../../../models/opportunity_model.dart';
 import '../../../models/startup_model.dart';
+import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -142,10 +143,16 @@ class _OpportunityTile extends ConsumerWidget {
                 color: AppColors.textSecondary,
               ),
               tooltip: opportunity.isOpen ? 'Close applications' : 'Reopen applications',
-              onPressed: () => ref.read(opportunityControllerProvider.notifier).setStatus(
-                    opportunity.id,
-                    opportunity.isOpen ? OpportunityStatus.closed : OpportunityStatus.open,
-                  ),
+              onPressed: () async {
+                final success =
+                    await ref.read(opportunityControllerProvider.notifier).setStatus(
+                          opportunity.id,
+                          opportunity.isOpen ? OpportunityStatus.closed : OpportunityStatus.open,
+                        );
+                if (!success && context.mounted) {
+                  context.showSnack('Could not update this opportunity.', isError: true);
+                }
+              },
             ),
           ],
         ),

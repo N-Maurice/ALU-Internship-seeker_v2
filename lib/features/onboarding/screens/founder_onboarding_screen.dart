@@ -35,7 +35,10 @@ class _FounderOnboardingScreenState extends ConsumerState<FounderOnboardingScree
   Future<void> _finish() async {
     if (!_formKey.currentState!.validate()) return;
     final uid = ref.read(authStateChangesProvider).value?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      context.showSnack('You appear to be signed out. Please sign in again.', isError: true);
+      return;
+    }
 
     setState(() => _saving = true);
     final created = await ref.read(startupControllerProvider.notifier).create(
