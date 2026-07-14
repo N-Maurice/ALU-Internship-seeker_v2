@@ -23,6 +23,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   int? _graduationYear;
   bool _agreedToTerms = false;
   bool _triedSubmit = false;
@@ -32,6 +33,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -138,6 +140,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             obscureText: true,
                             validator: Validators.password,
                           ),
+                          const SizedBox(height: 16),
+                          CustomTextField(
+                            label: 'Confirm Password',
+                            controller: _confirmPasswordController,
+                            icon: Icons.lock_outline,
+                            obscureText: true,
+                            validator: (v) => v != _passwordController.text
+                                ? 'Passwords do not match'
+                                : null,
+                          ),
                           const SizedBox(height: 12),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,6 +181,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             label: 'Create Account  →',
                             isLoading: isLoading,
                             onPressed: _submit,
+                          ),
+                          const SizedBox(height: 14),
+                          const AuthDivider(label: 'OR'),
+                          const SizedBox(height: 14),
+                          GoogleSignInButton(
+                            isLoading: isLoading,
+                            onPressed: () =>
+                                ref.read(authControllerProvider.notifier).signInWithGoogle(),
                           ),
                           const SizedBox(height: 18),
                           const AuthDivider(label: 'ALREADY HAVE AN ACCOUNT?'),

@@ -12,7 +12,28 @@
           "package_name": "com.example.alu_internship_seeker_ii"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "801347560648-rvjvpit5e5ajrecvtkinqajfv9lrhtr4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.alu_internship_seeker_ii",
+            "certificate_hash": "c5811934eff9222eb139a38584f55156186a2565"
+          }
+        },
+        {
+          "client_id": "801347560648-ufhnjnra8hc7ob5r9jrjq2s68a8hj803.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.alu_internship_seeker_ii",
+            "certificate_hash": "f0566919de1eef96b1804fb5aa614ccee2eb46cf"
+          }
+        },
+        {
+          "client_id": "801347560648-4qb8no756j2q0dppdvb0u83229tvm2gc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDzp_BG53h-X638yVUAIErPzZLAONU3QtE"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "801347560648-4qb8no756j2q0dppdvb0u83229tvm2gc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "801347560648-ujmat6lr61djkghtg83h0kl8qg4gnkj3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.aluInternshipSeekerIi"
+              }
+            }
+          ]
         }
       }
     }

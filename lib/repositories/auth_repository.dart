@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Wraps Firebase Auth. Callers (Riverpod notifiers) are responsible for
 /// catching exceptions and translating them via `core/errors`.
@@ -8,6 +9,7 @@ abstract class AuthRepository {
 
   Future<UserCredential> signUp({required String email, required String password});
   Future<UserCredential> signIn({required String email, required String password});
+  Future<UserCredential> signInWithGoogle();
   Future<void> signOut();
   Future<void> sendPasswordResetEmail(String email);
   Future<void> sendEmailVerification();
@@ -18,6 +20,8 @@ class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository(this._auth);
 
   final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  bool _googleSignInReady = false;
 
   @override
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -40,7 +44,24 @@ class FirebaseAuthRepository implements AuthRepository {
       _auth.signInWithEmailAndPassword(email: email, password: password);
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<UserCredential> signInWithGoogle() async {
+    if (!_googleSignInReady) {
+      await _googleSignIn.initialize();
+      _googleSignInReady = true;
+    }
+    final account = await _googleSignIn.authenticate();
+    final idToken = account.authentication.idToken;
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
+    return _auth.signInWithCredential(credential);
+  }
+
+  @override
+  Future<void> signOut() async {
+    await _auth.signOut();
+    if (_googleSignInReady) {
+      await _googleSignIn.signOut();
+    }
+  }
 
   @override
   Future<void> sendPasswordResetEmail(String email) =>

@@ -151,6 +151,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             isLoading: isLoading,
                             onPressed: _submit,
                           ),
+                          const SizedBox(height: 14),
+                          const AuthDivider(label: 'OR'),
+                          const SizedBox(height: 14),
+                          GoogleSignInButton(
+                            isLoading: isLoading,
+                            onPressed: () =>
+                                ref.read(authControllerProvider.notifier).signInWithGoogle(),
+                          ),
                           const SizedBox(height: 18),
                           const AuthDivider(label: 'New to the community?'),
                           const SizedBox(height: 14),
