@@ -190,40 +190,12 @@ class _DetailContent extends ConsumerWidget {
               isLoading: applying,
               onPressed: !opportunity.isOpen || hasApplied
                   ? null
-                  : () => _confirmApply(context, ref),
+                  : () => context.push('/opportunities/${opportunity.id}/apply'),
             ),
           ),
         ),
       ],
     );
-  }
-
-  Future<void> _confirmApply(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Apply to this opportunity?'),
-        content: Text(
-          'Your profile skills and portfolio links will be shared with ${opportunity.startupName}.',
-        ),
-        actions: [
-          TextButton(onPressed: () => context.pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => context.pop(true), child: const Text('Apply')),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-
-    final success = await ref.read(applicationControllerProvider.notifier).apply(opportunity);
-    if (!context.mounted) return;
-    if (success) {
-      context.showSnack('Application submitted to ${opportunity.startupName}!');
-    } else {
-      context.showSnack(
-        ref.read(applicationControllerProvider).error.toString(),
-        isError: true,
-      );
-    }
   }
 }
 

@@ -4,6 +4,8 @@ abstract final class FirestoreCollections {
   static const opportunities = 'opportunities';
   static const applications = 'applications';
   static const startups = 'startups';
+  static const conversations = 'conversations';
+  static const messages = 'messages';
 }
 
 /// Spacing scale used across the design system (multiples of 4).

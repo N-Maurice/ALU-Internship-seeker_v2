@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/colors.dart';
 import '../../../core/utilities/date_formatter.dart';
 import '../../../models/application_model.dart';
+import '../../../shared/components/custom_button.dart';
 import '../../../shared/components/profile_avatar.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -118,6 +120,19 @@ class _ApplicantProfileContent extends ConsumerWidget {
                   ),
                 ],
               ),
+            ),
+            if (application.coverLetter?.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              SectionCard(
+                title: 'Cover Letter',
+                child: Text(application.coverLetter!, style: const TextStyle(height: 1.6)),
+              ),
+            ],
+            const SizedBox(height: 16),
+            CustomButton(
+              label: 'Message Applicant',
+              onPressed: () =>
+                  context.push('/chat/${application.studentId}/${application.startupId}'),
             ),
             if (profile.skills.isNotEmpty) ...[
               const SizedBox(height: 16),

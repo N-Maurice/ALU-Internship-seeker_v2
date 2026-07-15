@@ -100,9 +100,11 @@ class ApplicationController extends Notifier<AsyncValue<void>> {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
-  Future<bool> apply(OpportunityModel opportunity) async {
+  Future<bool> apply(OpportunityModel opportunity, {String? coverLetter}) async {
     final user = ref.read(authStateChangesProvider).value;
     if (user == null) return false;
+
+    final trimmedCoverLetter = coverLetter?.trim();
 
     state = const AsyncLoading();
     try {
@@ -115,6 +117,10 @@ class ApplicationController extends Notifier<AsyncValue<void>> {
               startupId: opportunity.startupId,
               startupName: opportunity.startupName,
               studentId: user.uid,
+              coverLetter:
+                  (trimmedCoverLetter == null || trimmedCoverLetter.isEmpty)
+                      ? null
+                      : trimmedCoverLetter,
               appliedAt: now,
               updatedAt: now,
             ),

@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/colors.dart';
+import '../../../models/user_model.dart';
+import '../../../shared/components/custom_button.dart';
 import '../../../shared/components/profile_avatar.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../authentication/providers/auth_provider.dart';
 import '../providers/startup_provider.dart';
 
 class StartupProfileScreen extends ConsumerWidget {
@@ -17,6 +20,8 @@ class StartupProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final startupAsync = ref.watch(startupByIdProvider(startupId));
+    final myProfile = ref.watch(currentUserProfileProvider).value;
+    final canMessage = myProfile != null && myProfile.role == UserRole.student;
 
     return Scaffold(
       appBar: AppBar(
@@ -67,6 +72,13 @@ class StartupProfileScreen extends ConsumerWidget {
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Text(startup.description, style: const TextStyle(height: 1.6)),
+                  if (canMessage) ...[
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      label: 'Message',
+                      onPressed: () => context.push('/chat/${myProfile.uid}/${startup.id}'),
+                    ),
+                  ],
                 ],
               ),
       ),

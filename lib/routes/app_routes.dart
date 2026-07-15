@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/admin/screens/admin_pending_screen.dart';
+import '../features/applications/screens/apply_screen.dart';
 import '../features/applications/screens/applications_screen.dart';
 import '../features/authentication/providers/auth_provider.dart';
 import '../features/authentication/screens/forgot_password_screen.dart';
@@ -18,7 +19,8 @@ import '../features/founder/screens/founder_profile_screen.dart';
 import '../features/founder/screens/founder_startup_screen.dart';
 import '../features/founder/screens/my_opportunities_screen.dart';
 import '../features/founder/screens/opportunity_form_screen.dart';
-import '../features/messaging/screens/messages_screen.dart';
+import '../features/messaging/screens/chat_screen.dart';
+import '../features/messaging/screens/conversations_screen.dart';
 import '../features/onboarding/screens/founder_onboarding_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/opportunities/screens/opportunities_screen.dart';
@@ -124,6 +126,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             OpportunityDetailScreen(opportunityId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/opportunities/:id/apply',
+        builder: (_, state) => ApplyScreen(opportunityId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/startups/:id',
         builder: (_, state) =>
             StartupProfileScreen(startupId: state.pathParameters['id']!),
@@ -147,6 +153,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ApplicantProfileScreen(applicationId: state.pathParameters['applicationId']!),
       ),
       GoRoute(path: '/founder/startup', builder: (_, __) => const FounderStartupScreen()),
+      GoRoute(
+        path: '/chat/:studentId/:startupId',
+        builder: (_, state) => ChatScreen(
+          studentId: state.pathParameters['studentId']!,
+          startupId: state.pathParameters['startupId']!,
+        ),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (_, __, shell) => AppShellScaffold(navigationShell: shell),
         branches: [
@@ -160,7 +173,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/applications', builder: (_, __) => const ApplicationsScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
+            GoRoute(path: '/messages', builder: (_, __) => const ConversationsScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
@@ -188,7 +201,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/founder/messages', builder: (_, __) => const MessagesScreen()),
+            GoRoute(path: '/founder/messages', builder: (_, __) => const ConversationsScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/founder/profile', builder: (_, __) => const FounderProfileScreen()),

@@ -33,6 +33,7 @@ class ApplicationModel {
     this.status = ApplicationStatus.submitted,
     this.cvUrl,
     this.portfolioUrl,
+    this.coverLetter,
     required this.appliedAt,
     required this.updatedAt,
   });
@@ -46,6 +47,7 @@ class ApplicationModel {
   final ApplicationStatus status;
   final String? cvUrl;
   final String? portfolioUrl;
+  final String? coverLetter;
   final DateTime appliedAt;
   final DateTime updatedAt;
 
@@ -60,6 +62,7 @@ class ApplicationModel {
         status: ApplicationStatus.fromString(map['status'] as String?),
         cvUrl: map['cvUrl'] as String?,
         portfolioUrl: map['portfolioUrl'] as String?,
+        coverLetter: map['coverLetter'] as String?,
         appliedAt: (map['appliedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       );
@@ -73,6 +76,7 @@ class ApplicationModel {
         'status': status.name,
         'cvUrl': cvUrl,
         'portfolioUrl': portfolioUrl,
+        'coverLetter': coverLetter,
         'appliedAt': Timestamp.fromDate(appliedAt),
         'updatedAt': Timestamp.fromDate(updatedAt),
       };

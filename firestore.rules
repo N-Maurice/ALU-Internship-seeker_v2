@@ -76,5 +76,37 @@ service cloud.firestore {
       );
       allow delete: if false;
     }
+
+    // conversations/{conversationId} — one thread per (student, startup)
+    // pair, doc id is the deterministic `'${studentId}_$startupId'`. Only
+    // the two participants (the student, or the founder who owns the
+    // startup) can read or write it. A participant can update summary
+    // fields (last message, unread counts) but not reassign who the
+    // conversation is between.
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.studentId || isFounder(resource.data.startupId));
+      allow create: if isSignedIn() &&
+        conversationId == request.resource.data.studentId + '_' + request.resource.data.startupId &&
+        (request.auth.uid == request.resource.data.studentId ||
+          isFounder(request.resource.data.startupId));
+      allow update: if isSignedIn() &&
+        (request.auth.uid == resource.data.studentId || isFounder(resource.data.startupId)) &&
+        request.resource.data.studentId == resource.data.studentId &&
+        request.resource.data.startupId == resource.data.startupId;
+      allow delete: if false;
+    }
+
+    // messages/{messageId} — each message denormalizes studentId/startupId
+    // directly (see MessageModel) so this rule is self-contained, no get()
+    // through the conversation doc needed.
+    match /messages/{messageId} {
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.studentId || isFounder(resource.data.startupId));
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.senderId &&
+        (request.auth.uid == request.resource.data.studentId ||
+          isFounder(request.resource.data.startupId));
+      allow update, delete: if false;
+    }
   }
 }

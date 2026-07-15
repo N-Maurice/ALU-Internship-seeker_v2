@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../repositories/application_repository.dart';
 import '../repositories/auth_repository.dart';
+import '../repositories/messaging_repository.dart';
 import '../repositories/opportunity_repository.dart';
 import '../repositories/startup_repository.dart';
 import '../repositories/user_repository.dart';
@@ -34,4 +35,8 @@ final applicationRepositoryProvider = Provider<ApplicationRepository>(
 
 final startupRepositoryProvider = Provider<StartupRepository>(
   (ref) => FirebaseStartupRepository(ref.watch(firestoreProvider)),
+);
+
+final messagingRepositoryProvider = Provider<MessagingRepository>(
+  (ref) => FirebaseMessagingRepository(ref.watch(firestoreProvider)),
 );
