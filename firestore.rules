@@ -95,18 +95,26 @@ service cloud.firestore {
         request.resource.data.studentId == resource.data.studentId &&
         request.resource.data.startupId == resource.data.startupId;
       allow delete: if false;
-    }
 
-    // messages/{messageId} — each message denormalizes studentId/startupId
-    // directly (see MessageModel) so this rule is self-contained, no get()
-    // through the conversation doc needed.
-    match /messages/{messageId} {
-      allow read: if isSignedIn() &&
-        (request.auth.uid == resource.data.studentId || isFounder(resource.data.startupId));
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.senderId &&
-        (request.auth.uid == request.resource.data.studentId ||
-          isFounder(request.resource.data.startupId));
-      allow update, delete: if false;
+      // messages/{messageId} — nested under its conversation rather than a
+      // top-level collection filtered by conversationId. Firestore can only
+      // validate a *list* query against a rule that reads resource.data
+      // fields absent from the query's own filters if that data comes from
+      // a get() on a document reachable via the request path (like the
+      // parent conversation here); a top-level collection filtered by
+      // conversationId while the rule checks resource.data.studentId
+      // (a different, unfiltered field) is provably unscoped and Firestore
+      // hard-denies every such query with PERMISSION_DENIED, no matter what
+      // the data actually is.
+      match /messages/{messageId} {
+        allow read: if isSignedIn() &&
+          (request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId ||
+            isFounder(get(/databases/$(database)/documents/conversations/$(conversationId)).data.startupId));
+        allow create: if isSignedIn() && request.auth.uid == request.resource.data.senderId &&
+          (request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId ||
+            isFounder(get(/databases/$(database)/documents/conversations/$(conversationId)).data.startupId));
+        allow update, delete: if false;
+      }
     }
   }
 }

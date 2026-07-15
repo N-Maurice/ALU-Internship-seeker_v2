@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../models/user_model.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -24,7 +25,16 @@ class ConversationsScreen extends ConsumerWidget {
         isFounder ? ref.watch(founderConversationsProvider) : ref.watch(studentConversationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Messages')),
+      appBar: AppBar(
+        title: const Text('Messages'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_comment_outlined),
+            tooltip: 'New message',
+            onPressed: () => context.push('/messages/new'),
+          ),
+        ],
+      ),
       body: conversationsAsync.when(
         loading: () => const SkeletonList(),
         error: (error, _) => ErrorState(
@@ -38,8 +48,8 @@ class ConversationsScreen extends ConsumerWidget {
                 icon: Icons.forum_outlined,
                 title: 'No conversations yet',
                 message: isFounder
-                    ? 'Message an applicant from their profile to start a conversation.'
-                    : 'Message a startup from their profile to start a conversation.',
+                    ? 'Tap the message icon above to start a conversation with an applicant.'
+                    : 'Tap the message icon above to start a conversation with a startup.',
               )
             : ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

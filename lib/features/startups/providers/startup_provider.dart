@@ -24,6 +24,12 @@ final pendingStartupsProvider = StreamProvider<List<StartupModel>>((ref) {
   return ref.watch(startupRepositoryProvider).streamPending();
 });
 
+/// Every startup on the platform, for a student to browse when starting a
+/// new conversation from the Messages tab.
+final allStartupsProvider = StreamProvider<List<StartupModel>>((ref) {
+  return ref.watch(startupRepositoryProvider).streamAll();
+});
+
 final startupControllerProvider =
     NotifierProvider<StartupController, AsyncValue<void>>(StartupController.new);
 

@@ -21,6 +21,7 @@ import '../features/founder/screens/my_opportunities_screen.dart';
 import '../features/founder/screens/opportunity_form_screen.dart';
 import '../features/messaging/screens/chat_screen.dart';
 import '../features/messaging/screens/conversations_screen.dart';
+import '../features/messaging/screens/new_message_screen.dart';
 import '../features/onboarding/screens/founder_onboarding_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/opportunities/screens/opportunities_screen.dart';
@@ -153,6 +154,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ApplicantProfileScreen(applicationId: state.pathParameters['applicationId']!),
       ),
       GoRoute(path: '/founder/startup', builder: (_, __) => const FounderStartupScreen()),
+      GoRoute(path: '/messages/new', builder: (_, __) => const NewMessageScreen()),
       GoRoute(
         path: '/chat/:studentId/:startupId',
         builder: (_, state) => ChatScreen(

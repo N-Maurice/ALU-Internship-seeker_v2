@@ -36,8 +36,17 @@ class FirebaseMessagingRepository implements MessagingRepository {
   CollectionReference<Map<String, dynamic>> get _conversations =>
       _firestore.collection(FirestoreCollections.conversations);
 
-  CollectionReference<Map<String, dynamic>> get _messages =>
-      _firestore.collection(FirestoreCollections.messages);
+  /// Messages live under their conversation rather than a top-level
+  /// collection filtered by `conversationId`. Firestore can only validate a
+  /// *list* query against a rule that reads data outside the query's own
+  /// filters when that data comes from a get() on a document reachable via
+  /// the request path (the parent conversation, here) — a top-level
+  /// collection filtered by `conversationId` while the rule checks
+  /// `resource.data.studentId` (a different, unfiltered field) is provably
+  /// unscoped, so Firestore hard-denies every such query with
+  /// PERMISSION_DENIED regardless of what the data actually is.
+  CollectionReference<Map<String, dynamic>> _messagesOf(String conversationId) =>
+      _conversations.doc(conversationId).collection(FirestoreCollections.messages);
 
   String _conversationId(String studentId, String startupId) => '${studentId}_$startupId';
 
@@ -58,8 +67,7 @@ class FirebaseMessagingRepository implements MessagingRepository {
           snap.docs.map((d) => ConversationModel.fromMap(d.id, d.data())).toList());
 
   @override
-  Stream<List<MessageModel>> streamMessages(String conversationId) => _messages
-      .where('conversationId', isEqualTo: conversationId)
+  Stream<List<MessageModel>> streamMessages(String conversationId) => _messagesOf(conversationId)
       .orderBy('sentAt')
       .snapshots()
       .map((snap) => snap.docs.map((d) => MessageModel.fromMap(d.id, d.data())).toList());
@@ -78,45 +86,43 @@ class FirebaseMessagingRepository implements MessagingRepository {
   }) async {
     final conversationId = _conversationId(studentId, startupId);
     final now = Timestamp.now();
-    final batch = _firestore.batch();
 
-    // `set(..., merge: true)` on a doc that doesn't exist yet is evaluated
-    // as a create by Firestore rules, and as an update otherwise — one call
-    // handles "first message ever" and "every message after" identically,
-    // no read-before-write needed. FieldValue.increment() is atomic on its
-    // own even outside a transaction.
-    batch.set(
-      _conversations.doc(conversationId),
-      {
-        'studentId': studentId,
-        'studentName': studentName,
-        'studentPhotoUrl': studentPhotoUrl,
-        'startupId': startupId,
-        'startupName': startupName,
-        'startupLogoUrl': startupLogoUrl,
-        'lastMessageText': text,
-        'lastMessageSenderId': senderId,
-        'lastMessageAt': now,
-        if (senderIsFounder)
-          'studentUnreadCount': FieldValue.increment(1)
-        else
-          'founderUnreadCount': FieldValue.increment(1),
-        if (senderIsFounder) 'founderLastReadAt': now else 'studentLastReadAt': now,
-      },
-      SetOptions(merge: true),
-    );
+    // A plain WriteBatch won't work here: the message's create rule needs
+    // to get() the parent conversation doc to confirm the sender is a
+    // participant, but on the very first message ever, that doc is being
+    // created in this same write — and get() calls in rules only see
+    // writes from *earlier in the same transaction*, never sibling writes
+    // in a plain batch. A transaction is what makes the conversation
+    // write visible to the message rule's get() when both happen together.
+    await _firestore.runTransaction((transaction) async {
+      transaction.set(
+        _conversations.doc(conversationId),
+        {
+          'studentId': studentId,
+          'studentName': studentName,
+          'studentPhotoUrl': studentPhotoUrl,
+          'startupId': startupId,
+          'startupName': startupName,
+          'startupLogoUrl': startupLogoUrl,
+          'lastMessageText': text,
+          'lastMessageSenderId': senderId,
+          'lastMessageAt': now,
+          if (senderIsFounder)
+            'studentUnreadCount': FieldValue.increment(1)
+          else
+            'founderUnreadCount': FieldValue.increment(1),
+          if (senderIsFounder) 'founderLastReadAt': now else 'studentLastReadAt': now,
+        },
+        SetOptions(merge: true),
+      );
 
-    batch.set(_messages.doc(), {
-      'conversationId': conversationId,
-      'studentId': studentId,
-      'startupId': startupId,
-      'senderId': senderId,
-      'senderIsFounder': senderIsFounder,
-      'text': text,
-      'sentAt': now,
+      transaction.set(_messagesOf(conversationId).doc(), {
+        'senderId': senderId,
+        'senderIsFounder': senderIsFounder,
+        'text': text,
+        'sentAt': now,
+      });
     });
-
-    await batch.commit();
   }
 
   @override

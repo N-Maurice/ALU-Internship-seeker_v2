@@ -13,6 +13,10 @@ abstract class StartupRepository {
   /// All startups awaiting admin review.
   Stream<List<StartupModel>> streamPending();
 
+  /// Every startup on the platform, for a student to browse when starting a
+  /// new conversation from the Messages tab.
+  Stream<List<StartupModel>> streamAll();
+
   Future<String> create(StartupModel startup);
   Future<void> update(String id, Map<String, dynamic> data);
 
@@ -49,6 +53,12 @@ class FirebaseStartupRepository implements StartupRepository {
       .snapshots()
       .map((snap) =>
           snap.docs.map((d) => StartupModel.fromMap(d.id, d.data())).toList());
+
+  @override
+  Stream<List<StartupModel>> streamAll() => _startups
+      .orderBy('name')
+      .snapshots()
+      .map((snap) => snap.docs.map((d) => StartupModel.fromMap(d.id, d.data())).toList());
 
   @override
   Future<String> create(StartupModel startup) async {
