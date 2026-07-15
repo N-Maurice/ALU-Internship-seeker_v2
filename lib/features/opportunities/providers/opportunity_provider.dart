@@ -1,9 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/exceptions.dart';
+import '../../../core/errors/failure.dart';
 import '../../../models/opportunity_model.dart';
 import '../../../providers/app_providers.dart';
 import '../../../repositories/opportunity_repository.dart';
+
+/// Firestore writes here go through a rule that requires a server-side
+/// `get()` (checking startup ownership), so they can't be satisfied from
+/// local cache while offline — they'll otherwise hang indefinitely on a
+/// flaky connection instead of failing. This bounds that wait so the UI
+/// can show a real error instead of spinning forever.
+const _writeTimeout = Duration(seconds: 20);
 
 class OpportunityFilterNotifier extends Notifier<OpportunityFilter> {
   @override
@@ -75,9 +85,12 @@ class OpportunityController extends Notifier<AsyncValue<void>> {
   Future<bool> create(OpportunityModel opportunity) async {
     state = const AsyncLoading();
     try {
-      await ref.read(opportunityRepositoryProvider).create(opportunity);
+      await ref.read(opportunityRepositoryProvider).create(opportunity).timeout(_writeTimeout);
       state = const AsyncData(null);
       return true;
+    } on TimeoutException catch (_, st) {
+      state = AsyncError(const Failure('Taking too long to reach the server. Check your connection and try again.'), st);
+      return false;
     } catch (e, st) {
       state = AsyncError(mapExceptionToFailure(e), st);
       return false;
@@ -87,9 +100,12 @@ class OpportunityController extends Notifier<AsyncValue<void>> {
   Future<bool> update(String id, Map<String, dynamic> data) async {
     state = const AsyncLoading();
     try {
-      await ref.read(opportunityRepositoryProvider).update(id, data);
+      await ref.read(opportunityRepositoryProvider).update(id, data).timeout(_writeTimeout);
       state = const AsyncData(null);
       return true;
+    } on TimeoutException catch (_, st) {
+      state = AsyncError(const Failure('Taking too long to reach the server. Check your connection and try again.'), st);
+      return false;
     } catch (e, st) {
       state = AsyncError(mapExceptionToFailure(e), st);
       return false;
@@ -99,9 +115,12 @@ class OpportunityController extends Notifier<AsyncValue<void>> {
   Future<bool> setStatus(String id, OpportunityStatus status) async {
     state = const AsyncLoading();
     try {
-      await ref.read(opportunityRepositoryProvider).setStatus(id, status);
+      await ref.read(opportunityRepositoryProvider).setStatus(id, status).timeout(_writeTimeout);
       state = const AsyncData(null);
       return true;
+    } on TimeoutException catch (_, st) {
+      state = AsyncError(const Failure('Taking too long to reach the server. Check your connection and try again.'), st);
+      return false;
     } catch (e, st) {
       state = AsyncError(mapExceptionToFailure(e), st);
       return false;

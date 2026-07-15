@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/colors.dart';
 import '../../../models/opportunity_model.dart';
+import '../../../models/startup_model.dart';
 import '../../../providers/app_providers.dart';
 import '../../../shared/components/custom_button.dart';
 import '../../../shared/components/custom_text_field.dart';
@@ -96,13 +97,43 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final user = ref.read(authStateChangesProvider).value;
-    final startup = ref.read(myStartupProvider).value;
-    if (user == null || startup == null) {
-      context.showSnack('Could not find your startup. Please try again.', isError: true);
+    if (user == null) {
+      context.showSnack('You appear to be signed out. Please sign in again.', isError: true);
       return;
     }
 
     setState(() => _saving = true);
+
+    // `build()` keeps `myStartupProvider` actively watched for as long as
+    // this screen is mounted (Riverpod pauses a StreamProvider's underlying
+    // subscription when nothing is watching it, so a one-shot `ref.read`
+    // here — with no active watcher elsewhere — could await a paused
+    // stream that never delivers). By the time the user has filled in the
+    // form and tapped submit, that watch has almost certainly already
+    // resolved; `.future` below is just a short belt-and-suspenders wait
+    // for the rare case it's still loading.
+    final StartupModel? startup;
+    try {
+      startup = ref.read(myStartupProvider).value ??
+          await ref.read(myStartupProvider.future).timeout(const Duration(seconds: 15));
+    } catch (_) {
+      if (mounted) {
+        context.showSnack(
+          'Could not load your startup — check your connection and try again.',
+          isError: true,
+        );
+        setState(() => _saving = false);
+      }
+      return;
+    }
+    if (startup == null) {
+      if (mounted) {
+        context.showSnack('Could not find your startup. Please try again.', isError: true);
+        setState(() => _saving = false);
+      }
+      return;
+    }
+
     final controller = ref.read(opportunityControllerProvider.notifier);
     bool success;
 
@@ -156,6 +187,12 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Actively watching here (rather than only reading inside `_submit`)
+    // keeps the provider's underlying Firestore subscription alive for the
+    // whole time this screen is open, so it has resolved well before the
+    // user taps Save/Publish — see the comment in `_submit` for why.
+    final startupAsync = ref.watch(myStartupProvider);
+
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Edit Opportunity' : 'Create New Opportunity')),
       body: SafeArea(
@@ -168,6 +205,17 @@ class _OpportunityFormScreenState extends ConsumerState<OpportunityFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (startupAsync.value != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'Posting for ${startupAsync.value!.name}',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       const Text(
                         "Provide the details for the new role to connect with ALU's elite talent pool.",
                         style: TextStyle(color: AppColors.textSecondary),
